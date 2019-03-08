@@ -72,10 +72,27 @@ Sint32	mousePressedX = 0, mousePressedY = 0;
 float	lastXOffset = 0.0, lastYOffset = 0.0, lastZOffset = 0.0;
 // mouse button states
 //int		leftMouseButtonActive = 0, middleMouseButtonActive = 0, rightMouseButtonActive = 0;
-bool	leftMouseButtonActive = false, middleMouseButtonActive = false, rightMouseButtonActive = false;
+//bool	leftMouseButtonActive = false, middleMouseButtonActive = false, rightMouseButtonActive = false;
+enum MouseState { mouseIdle, leftMouseButtonActive, middleMouseButtonActive, rightMouseButtonActive };
+MouseState mouseState = mouseIdle;
 
-// position of the objects.
+// Position of the objects.
 glm::vec3	teapotPos(0.0f, 0.0f, 0.0f);
+
+// Store the position of the mouse when it was pressed.
+void setMousePressedPos(Sint32 const& x, Sint32 const& y) {
+	mousePressedX = x;
+	mousePressedY = y;
+}
+
+void setMouseLastOffset(float const& x, float const& y, float const& z) {
+	lastXOffset = x, lastYOffset = y, lastZOffset = z;
+}
+
+// Reset last XYZ's offset to 0.
+void resetMouseLastOffset() {
+	lastXOffset = 0.0f, lastYOffset = 0.0f, lastZOffset = 0.0f;
+}
 
 // ****************************************************************************
 // ****************************************************************************
@@ -204,17 +221,17 @@ bool handleEvents(SDL_Event & evt, sdlWrapper & sdlContext) {
 		if (evt.type == SDL_MOUSEBUTTONDOWN) {
 			switch (evt.button.button) {
 			case SDL_BUTTON_LEFT:
-				leftMouseButtonActive = true;
+				mouseState = leftMouseButtonActive;
 				break;
 			
 			case SDL_BUTTON_RIGHT:
-				rightMouseButtonActive = true;
+				mouseState = rightMouseButtonActive;
+				setMousePressedPos(evt.button.x, evt.button.y);
 				break;
 			
 			case SDL_BUTTON_MIDDLE:
-				middleMouseButtonActive = true;
-				mousePressedX = evt.button.x;
-				mousePressedY = evt.button.y;
+				mouseState = middleMouseButtonActive;
+				setMousePressedPos(evt.button.x, evt.button.y);
 				break;
 			}
 		}
@@ -222,16 +239,17 @@ bool handleEvents(SDL_Event & evt, sdlWrapper & sdlContext) {
 		if (evt.type == SDL_MOUSEBUTTONUP) {
 			switch (evt.button.button) {
 			case SDL_BUTTON_LEFT:
-				leftMouseButtonActive = false;
+				mouseState = mouseIdle;
 				break;
 			
 			case SDL_BUTTON_RIGHT:
-				rightMouseButtonActive = false;
+				mouseState = mouseIdle;
+				resetMouseLastOffset();
 				break;
 			
 			case SDL_BUTTON_MIDDLE:
-				middleMouseButtonActive = false;
-				lastXOffset = 0.0f, lastYOffset = 0.0f;
+				mouseState = mouseIdle;
+				resetMouseLastOffset();
 				break;
 			}
 		}
@@ -239,12 +257,29 @@ bool handleEvents(SDL_Event & evt, sdlWrapper & sdlContext) {
 		// Handle Mouse Motion Events
 		// The if_statement is true if the mouse is moving on the window.
 		if (evt.type == SDL_MOUSEMOTION) {
-			if (middleMouseButtonActive) {
-				// Calculate the offset.
-				float tmpXOff = (float) (evt.motion.x - mousePressedX);
-				float tmpYOff = (float) (mousePressedY - evt.motion.y);
-				teapotPos += glm::vec3(tmpXOff-lastXOffset, tmpYOff-lastYOffset, 0.0f);
-				lastXOffset = tmpXOff, lastYOffset = tmpYOff;
+			float tmpXOff = 0.0f, tmpYOff = 0.0f;
+
+			switch (mouseState) {
+			case middleMouseButtonActive:
+				// Calculate the offset of XY.
+				tmpXOff = (float)(evt.motion.x - mousePressedX);
+				tmpYOff = (float)(mousePressedY - evt.motion.y);
+				// Update object's position.
+				teapotPos += glm::vec3(tmpXOff - lastXOffset, tmpYOff - lastYOffset, 0.0f);
+				setMouseLastOffset(tmpXOff, tmpYOff, 0.0f);
+				break;
+
+			case rightMouseButtonActive:
+				// Calculate the offset of X.
+				tmpXOff = (float)(mousePressedX - evt.motion.x);
+				// Update object's position.
+				teapotPos += glm::vec3(0.0f, 0.0f, tmpXOff - lastXOffset);
+				setMouseLastOffset(tmpXOff, tmpYOff, 0.0f);
+				break;
+
+			case leftMouseButtonActive:
+
+				break;
 			}
 		}
 
