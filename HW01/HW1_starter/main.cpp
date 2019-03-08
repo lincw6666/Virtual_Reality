@@ -67,10 +67,15 @@ glm::vec3	viewerUp		(0.0, 1.0, 0.0);
 float	navigationRotation[3] = { 0.0, 0.0, 0.0 };
 
 // position of the mouse when pressed
-int		mousePressedX = 0, mousePressedY = 0;
+//int		mousePressedX = 0, mousePressedY = 0;
+Sint32	mousePressedX = 0, mousePressedY = 0;
 float	lastXOffset = 0.0, lastYOffset = 0.0, lastZOffset = 0.0;
 // mouse button states
-int		leftMouseButtonActive = 0, middleMouseButtonActive = 0, rightMouseButtonActive = 0;
+//int		leftMouseButtonActive = 0, middleMouseButtonActive = 0, rightMouseButtonActive = 0;
+bool	leftMouseButtonActive = false, middleMouseButtonActive = false, rightMouseButtonActive = false;
+
+// position of the objects.
+glm::vec3	teapotPos(0.0f, 0.0f, 0.0f);
 
 // ****************************************************************************
 // ****************************************************************************
@@ -129,17 +134,18 @@ void main(int argc, char **argv) {
 
 		// Setup Projection, Model, and View Matricies
 		glm::mat4 projMat = glm::perspective(glm::radians(50.0f), aspectRatio, zNear, zFar);
-		glm::vec3 teapotPos = glm::vec3(0.0f, 0.0f, 0.0f);
-		glm::mat4 modelMat = glm::scale(glm::translate(glm::mat4(1.0f), teapotPos), glm::vec3(10.0f));
+		glm::mat4 modelMatForObject = glm::scale(glm::translate(glm::mat4(1.0f), teapotPos), glm::vec3(10.0f));
+		glm::mat4 modelMatForAxes = glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), glm::vec3(10.0f));
 		glm::mat4 viewMat = glm::lookAt(viewerPosition, viewerCenter, viewerUp);
 
 		// Attached Projection, Model, and View matricies to the shader
 		// In the shader the Proj * View * Model * vertex_coord operation is carried out
 		shader.attachToUniform("Proj", projMat);
 		shader.attachToUniform("View", viewMat);
-		shader.attachToUniform("Model", modelMat);
 		
+		shader.attachToUniform("Model", modelMatForAxes);
 		axes.Draw(shader);
+		shader.attachToUniform("Model", modelMatForObject);
 		model.Draw(shader);
 
 		// ****************************************************************************
@@ -197,23 +203,49 @@ bool handleEvents(SDL_Event & evt, sdlWrapper & sdlContext) {
 		// Handle Mouse Click Events
 		if (evt.type == SDL_MOUSEBUTTONDOWN) {
 			switch (evt.button.button) {
-			case SDL_BUTTON_LEFT:	break;
-			case SDL_BUTTON_RIGHT:	break;
-			case SDL_BUTTON_MIDDLE:	break;
+			case SDL_BUTTON_LEFT:
+				leftMouseButtonActive = true;
+				break;
+			
+			case SDL_BUTTON_RIGHT:
+				rightMouseButtonActive = true;
+				break;
+			
+			case SDL_BUTTON_MIDDLE:
+				middleMouseButtonActive = true;
+				mousePressedX = evt.button.x;
+				mousePressedY = evt.button.y;
+				break;
 			}
 		}
 
 		if (evt.type == SDL_MOUSEBUTTONUP) {
 			switch (evt.button.button) {
-			case SDL_BUTTON_LEFT:	 break;
-			case SDL_BUTTON_RIGHT:	 break;
-			case SDL_BUTTON_MIDDLE:	 break;
+			case SDL_BUTTON_LEFT:
+				leftMouseButtonActive = false;
+				break;
+			
+			case SDL_BUTTON_RIGHT:
+				rightMouseButtonActive = false;
+				break;
+			
+			case SDL_BUTTON_MIDDLE:
+				middleMouseButtonActive = false;
+				lastXOffset = 0.0f, lastYOffset = 0.0f;
+				break;
 			}
 		}
 
 		// Handle Mouse Motion Events
+		// The if_statement is true if the mouse is moving on the window.
 		if (evt.type == SDL_MOUSEMOTION) {
-
+			if (middleMouseButtonActive) {
+				// Calculate the offset.
+				float tmpXOff = (float) (evt.motion.x - mousePressedX);
+				float tmpYOff = (float) (mousePressedY - evt.motion.y);
+				teapotPos += glm::vec3(tmpXOff-lastXOffset, tmpYOff-lastYOffset, 0.0f);
+				lastXOffset = tmpXOff, lastYOffset = tmpYOff;
+			}
 		}
 
 		// ****************************************************************************
