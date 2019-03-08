@@ -58,7 +58,7 @@ bool handleEvents(SDL_Event & evt, sdlWrapper & sdlContext);
 // You can use these global variables to start thinking about how to implement mouse movements
 // You do not have to use these if you don't want
 
-# define PI	3.14159265358979323846	/* pi */
+#include <math.h>
 
 // parameters for the navigation
 glm::vec3	viewerPosition	(0.0, 0.0, 50.0);
@@ -147,7 +147,18 @@ void main(int argc, char **argv) {
 
 		// Setup Projection, Model, and View Matricies
 		glm::mat4 projMat = glm::perspective(glm::radians(50.0f), aspectRatio, zNear, zFar);
-		glm::mat4 modelMat = glm::scale(glm::translate(glm::mat4(1.0f), teapotPos), glm::vec3(10.0f));
+		glm::mat4 modelMat = glm::scale(
+			glm::rotate(	// x axes
+				glm::rotate(	// y axes
+					glm::translate(glm::mat4(1.0f), teapotPos),
+					glm::radians(navigationRotation[0]),
+					glm::vec3(1.0f, 0.0f, 0.0f)
+				),
+				glm::radians(navigationRotation[1]),
+				glm::vec3(0.0f, 1.0f, 0.0f)
+			), 
+			glm::vec3(10.0f)
+		);
 		glm::mat4 viewMat = glm::lookAt(viewerPosition, viewerCenter, viewerUp);
 
 		// Attached Projection, Model, and View matricies to the shader
@@ -216,6 +227,7 @@ bool handleEvents(SDL_Event & evt, sdlWrapper & sdlContext) {
 			switch (evt.button.button) {
 			case SDL_BUTTON_LEFT:
 				mouseState = leftMouseButtonActive;
+				setMousePressedPos(evt.button.x, evt.button.y);
 				break;
 			
 			case SDL_BUTTON_RIGHT:
@@ -234,6 +246,7 @@ bool handleEvents(SDL_Event & evt, sdlWrapper & sdlContext) {
 			switch (evt.button.button) {
 			case SDL_BUTTON_LEFT:
 				mouseState = mouseIdle;
+				resetMouseLastOffset();
 				break;
 			
 			case SDL_BUTTON_RIGHT:
@@ -274,7 +287,13 @@ bool handleEvents(SDL_Event & evt, sdlWrapper & sdlContext) {
 			case leftMouseButtonActive:
 				// Calculate the offset of XY.
 				tmpXOff = (float)(evt.motion.x - mousePressedX);
-				tmpYOff = (float)(mousePressedY - evt.motion.y);
+				tmpYOff = (float)(evt.motion.y - mousePressedY);
+				// Rotate the navigation view.
+				navigationRotation[1] += tmpXOff - lastXOffset;
+				navigationRotation[0] += tmpYOff - lastYOffset;
+				navigationRotation[0] = (float)fmod(navigationRotation[0], 360);
+				navigationRotation[1] = (float)fmod(navigationRotation[1], 360);
+				setMouseLastOffset(tmpXOff, tmpYOff, 0.0f);
 				break;
 			}
 		}
