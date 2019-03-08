@@ -58,6 +58,8 @@ bool handleEvents(SDL_Event & evt, sdlWrapper & sdlContext);
 // You can use these global variables to start thinking about how to implement mouse movements
 // You do not have to use these if you don't want
 
+# define PI	3.14159265358979323846	/* pi */
+
 // parameters for the navigation
 glm::vec3	viewerPosition	(0.0, 0.0, 50.0);
 glm::vec3	viewerCenter	(0.0, 0.0, 0.0);
@@ -67,29 +69,23 @@ glm::vec3	viewerUp		(0.0, 1.0, 0.0);
 float	navigationRotation[3] = { 0.0, 0.0, 0.0 };
 
 // position of the mouse when pressed
-//int		mousePressedX = 0, mousePressedY = 0;
 Sint32	mousePressedX = 0, mousePressedY = 0;
 float	lastXOffset = 0.0, lastYOffset = 0.0, lastZOffset = 0.0;
 // mouse button states
-//int		leftMouseButtonActive = 0, middleMouseButtonActive = 0, rightMouseButtonActive = 0;
-//bool	leftMouseButtonActive = false, middleMouseButtonActive = false, rightMouseButtonActive = false;
 enum MouseState { mouseIdle, leftMouseButtonActive, middleMouseButtonActive, rightMouseButtonActive };
 MouseState mouseState = mouseIdle;
 
 // Position of the objects.
 glm::vec3	teapotPos(0.0f, 0.0f, 0.0f);
 
-// Store the position of the mouse when it was pressed.
 void setMousePressedPos(Sint32 const& x, Sint32 const& y) {
-	mousePressedX = x;
-	mousePressedY = y;
+	mousePressedX = x, mousePressedY = y;
 }
 
 void setMouseLastOffset(float const& x, float const& y, float const& z) {
 	lastXOffset = x, lastYOffset = y, lastZOffset = z;
 }
 
-// Reset last XYZ's offset to 0.
 void resetMouseLastOffset() {
 	lastXOffset = 0.0f, lastYOffset = 0.0f, lastZOffset = 0.0f;
 }
@@ -151,18 +147,16 @@ void main(int argc, char **argv) {
 
 		// Setup Projection, Model, and View Matricies
 		glm::mat4 projMat = glm::perspective(glm::radians(50.0f), aspectRatio, zNear, zFar);
-		glm::mat4 modelMatForObject = glm::scale(glm::translate(glm::mat4(1.0f), teapotPos), glm::vec3(10.0f));
-		glm::mat4 modelMatForAxes = glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), glm::vec3(10.0f));
+		glm::mat4 modelMat = glm::scale(glm::translate(glm::mat4(1.0f), teapotPos), glm::vec3(10.0f));
 		glm::mat4 viewMat = glm::lookAt(viewerPosition, viewerCenter, viewerUp);
 
 		// Attached Projection, Model, and View matricies to the shader
 		// In the shader the Proj * View * Model * vertex_coord operation is carried out
 		shader.attachToUniform("Proj", projMat);
 		shader.attachToUniform("View", viewMat);
-		
-		shader.attachToUniform("Model", modelMatForAxes);
+		shader.attachToUniform("Model", modelMat);
+
 		axes.Draw(shader);
-		shader.attachToUniform("Model", modelMatForObject);
 		model.Draw(shader);
 
 		// ****************************************************************************
@@ -278,7 +272,9 @@ bool handleEvents(SDL_Event & evt, sdlWrapper & sdlContext) {
 				break;
 
 			case leftMouseButtonActive:
-
+				// Calculate the offset of XY.
+				tmpXOff = (float)(evt.motion.x - mousePressedX);
+				tmpYOff = (float)(mousePressedY - evt.motion.y);
 				break;
 			}
 		}
