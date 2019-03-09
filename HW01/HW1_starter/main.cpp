@@ -120,10 +120,15 @@ public:
 
 	// Functions for modelMat.
 	void setModelMat() {
+		/*
 		glm::mat4 t  = glm::translate(glm::mat4(1.0f), pos);
 		glm::mat4 rx = glm::rotate( t, glm::radians(navigationRotation[0]), glm::vec3(1.0f, 0.0f, 0.0f));
 		glm::mat4 ry = glm::rotate(rx, glm::radians(navigationRotation[1]), glm::vec3(0.0f, 1.0f, 0.0f));
-		modelMat = glm::scale(ry, scale);
+		*/
+		glm::mat4 rx = glm::rotate(glm::mat4(1.0f), glm::radians(navigationRotation[0]), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 ry = glm::rotate(rx, glm::radians(navigationRotation[1]), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 t = glm::translate(ry, pos);
+		modelMat = glm::scale(t, scale);
 	}
 	glm::mat4 const& getModelMat() { return modelMat; }
 } models[MODEL_NUM];
