@@ -120,11 +120,6 @@ public:
 
 	// Functions for modelMat.
 	void setModelMat() {
-		/*
-		glm::mat4 t  = glm::translate(glm::mat4(1.0f), pos);
-		glm::mat4 rx = glm::rotate( t, glm::radians(navigationRotation[0]), glm::vec3(1.0f, 0.0f, 0.0f));
-		glm::mat4 ry = glm::rotate(rx, glm::radians(navigationRotation[1]), glm::vec3(0.0f, 1.0f, 0.0f));
-		*/
 		glm::mat4 rx = glm::rotate(glm::mat4(1.0f), glm::radians(navigationRotation[0]), glm::vec3(1.0f, 0.0f, 0.0f));
 		glm::mat4 ry = glm::rotate(rx, glm::radians(navigationRotation[1]), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 t = glm::translate(ry, pos);
@@ -176,8 +171,8 @@ void main(int argc, char **argv) {
 	// ****************************************************************************
 	std::cout << "Loading Models ...";
 	models[0].initModel(modelsDir + "teapot.obj", glm::vec3(0.0f), glm::vec3(10.0f));
-	models[1].initModel(modelsDir + "teapot.obj", glm::vec3(20.0f, 0.0f, 0.0f), glm::vec3(10.0f));
-	models[2].initModel(modelsDir + "teapot.obj", glm::vec3(-20.0f, 0.0f, 0.0f), glm::vec3(10.0f));
+	models[1].initModel(modelsDir + "Bigmax_White_OBJ.obj", glm::vec3(20.0f, -8.0f, 1.0f), glm::vec3(0.2f));
+	models[2].initModel(modelsDir + "Cow.obj", glm::vec3(-18.0f, -5.0f, 7.0f), glm::vec3(0.025f));
 	Model axes(modelsDir + "axes.obj");
 	std::cout << " Done!" << std::endl;
 	// ****************************************************************************
