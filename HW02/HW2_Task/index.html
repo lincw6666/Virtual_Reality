@@ -81,6 +81,10 @@
 			addHangar();
 			chopper = addChopper();
 
+			light = new THREE.PointLight(0xffffff, 1, 100);
+			light.position.set(0, 0, 0);
+			scene.add(light);
+
 			//Three.js has some classes for splines. 
 			lightTrajectory = new THREE.CatmullRomCurve3([
 				new THREE.Vector3(0, -4, 5),
@@ -133,6 +137,8 @@
 			//This will sample the light trajectory curve and assign a point value at a given time to the light position.
 			var m = millis() / 4000;
 			lightPosition = lightTrajectory.getPoint(m - parseInt(m));
+			var lPosVec3 = new THREE.Vector3().copy(lightPosition).applyMatrix4(camera.matrixWorldInverse);
+			light.position.set(lPosVec3.x, lPosVec3.y, lPosVec3.z);
 
 			//Traverse the scene and update the lightPosition variable value for the shaders.
 			scene.traverse(function (object) {
