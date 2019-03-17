@@ -1,0 +1,23 @@
+*.doc
+*.docx
+*.zip
+*.pdf
+*.dll
+*.mp4
+
+# Ignore files in HW01.
+HW01/Figures/
+HW01/HW1_starter/external_dependancies/
+HW01/HW1_starter/models/
+HW01/HW1_starter/shaders/
+HW01/HW1_starter/stage/
+HW01/HW1_starter/mesh.h
+HW01/HW1_starter/model.h
+HW01/HW1_starter/sdlWrapper.*
+HW01/HW1_starter/shader.*
+HW01/HW1_starter/utils.*
+
+# Ignore files in HW02.
+HW02/HW2_Preview/
+HW02/HW2_Task/three.r96.js
+
