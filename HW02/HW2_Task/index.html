@@ -27,7 +27,7 @@
 		var shaderMode = 1;
 
 		//We will use a point light that moves along a trajectory
-		var lightPosition;
+		var lightPosition = new THREE.Vector3(0.0, 0.0, 0.0);
 		var lightTrajectory;
 
 		//Viewer position in world space
@@ -247,6 +247,8 @@
 					//There will be 2 uniforms sent to the shader:
 					// -lightPosition, v3, vec3 - the position of the light source
 					// -color, c, vec3 - the color of the current material
+					lightPosition: { value: lightPosition.clone() },
+					color: { value: color.clone() }
 				},
 				vertexShader: vertexShader,
 				fragmentShader: fragmentShader
