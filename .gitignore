@@ -19,5 +19,6 @@ HW01/HW1_starter/utils.*
 
 # Ignore files in HW02.
 HW02/HW2_Preview/
+HW02/Figures/
 HW02/HW2_Task/three.r96.js
 
