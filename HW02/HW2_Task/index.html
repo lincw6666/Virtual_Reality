@@ -81,10 +81,6 @@
 			addHangar();
 			chopper = addChopper();
 
-			light = new THREE.PointLight(0xffffff, 1, 100);
-			light.position.set(0, 0, 0);
-			scene.add(light);
-
 			//Three.js has some classes for splines. 
 			lightTrajectory = new THREE.CatmullRomCurve3([
 				new THREE.Vector3(0, -4, 5),
@@ -137,14 +133,12 @@
 			//This will sample the light trajectory curve and assign a point value at a given time to the light position.
 			var m = millis() / 4000;
 			lightPosition = lightTrajectory.getPoint(m - parseInt(m));
-			var lPosVec3 = new THREE.Vector3().copy(lightPosition).applyMatrix4(camera.matrixWorldInverse);
-			light.position.set(lPosVec3.x, lPosVec3.y, lPosVec3.z);
-
+			
 			//Traverse the scene and update the lightPosition variable value for the shaders.
 			scene.traverse(function (object) {
 				if (object.material !== undefined && object.material instanceof THREE.ShaderMaterial) {
 					//Send the light position transformed to camera space
-					//object.material.uniforms.lightPosition.value = new THREE.Vector3().copy(lightPosition).applyMatrix4(camera.matrixWorldInverse);
+					object.material.uniforms.lightPosition.value = new THREE.Vector3().copy(lightPosition).applyMatrix4(camera.matrixWorldInverse);
 				}
 			});
 
@@ -287,7 +281,29 @@
 				//   See: https://www.opengl.org/sdk/docs/man/html/reflect.xhtml
 				//   Use a value like 200 for the shininess
 				
-				interpolatedColor = color; //Replace this line
+				vec3 vertex_pos = (modelViewMatrix * vec4(position, 1.0)).xyz;
+				vec3 N = normalize(normalMatrix * normal);
+				vec3 L = normalize(lightPosition - vertex_pos);
+				vec3 R = reflect(-L, N);
+				vec3 V = normalize(-vertex_pos);
+
+				// Ambient light.
+				vec3	light_ambient_color = vec3(0.0, 0.0, 0.0);
+				vec3	ambient_light = light_ambient_color * color;
+				// Diffuse light.
+				vec3	light_diffuse_color = vec3(1.0, 1.0, 1.0);
+				float	diffuse_angle = max(dot(L, N), 0.0);
+				vec3	diffuse_light = light_diffuse_color * color * diffuse_angle;
+				// Specular light.
+				vec3	specular_light = vec3(0.0, 0.0, 0.0);
+				if (diffuse_angle > 0.0) {
+					vec3	light_specular_color = vec3(1.0, 1.0, 1.0);
+					float	specular_angle = max(dot(R, V), 0.0);
+					float	shiness = 40.0;
+					specular_light = light_specular_color * color * pow(specular_angle, shiness);
+				}
+
+				interpolatedColor = ambient_light + diffuse_light + specular_light;
 				
 				gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
 			}
@@ -307,8 +323,8 @@
 			
 			void main() {
 				//Find the correct values for the position and the normal in camera space.
-				interpolatedPosition = position; //Replace these 2 lines
-				interpolatedNormal = normal;
+				interpolatedPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+				interpolatedNormal   = normalize(normalMatrix * normal);
 				
 				gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
 			}
