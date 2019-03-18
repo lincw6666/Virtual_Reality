@@ -297,7 +297,7 @@
 				// Specular light.
 				vec3	specular_light = vec3(0.0, 0.0, 0.0);
 				if (diffuse_angle > 0.0) {
-					vec3	light_specular_color = vec3(1.0, 1.0, 1.0);
+					vec3	light_specular_color = vec3(2.0, 2.0, 2.0);
 					float	specular_angle = max(dot(R, V), 0.0);
 					float	shiness = 40.0;
 					specular_light = light_specular_color * color * pow(specular_angle, shiness);
@@ -337,7 +337,27 @@
 			
 			void main() {
 				//Do the same Phong's lighting/reflection model calculation that you did in Gouraud vertex shader before.
-				gl_FragColor = vec4(color, 1.0);
+				vec3 L = normalize(lightPosition - interpolatedPosition);
+				vec3 R = reflect(-L, interpolatedNormal);
+				vec3 V = normalize(-interpolatedPosition);
+
+				// Ambient light.
+				vec3	light_ambient_color = vec3(0.0, 0.0, 0.0);
+				vec3	ambient_light = light_ambient_color * color;
+				// Diffuse light.
+				vec3	light_diffuse_color = vec3(1.0, 1.0, 1.0);
+				float	diffuse_angle = max(dot(L, interpolatedNormal), 0.0);
+				vec3	diffuse_light = light_diffuse_color * color * diffuse_angle;
+				// Specular light.
+				vec3	specular_light = vec3(0.0, 0.0, 0.0);
+				if (diffuse_angle > 0.0) {
+					vec3	light_specular_color = vec3(5.0, 5.0, 5.0);
+					float	specular_angle = max(dot(R, V), 0.0);
+					float	shiness = 200.0;
+					specular_light = light_specular_color * color * pow(specular_angle, shiness);
+				}
+				
+				gl_FragColor = vec4(ambient_light + diffuse_light + specular_light, 1.0);
 			}
 		</script>
 </head>
