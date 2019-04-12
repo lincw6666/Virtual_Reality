@@ -1,9 +1,15 @@
 *.doc
 *.docx
+*.xls
+*.xlsx
 *.zip
+*.rar
 *.pdf
 *.dll
 *.mp4
+*.txt
+
+Oculus_Packages/
 
 # Ignore files in HW01.
 HW01/Figures/
@@ -22,3 +28,10 @@ HW02/HW2_Preview/
 HW02/Figures/
 HW02/HW2_Task/three.r96.js
 
+# Ignore files in HW03.
+HW03/
+
+# Ignore files in final project.
+Final/Final_Project/
+Final/data/
+Final/pb_Stl-master/
