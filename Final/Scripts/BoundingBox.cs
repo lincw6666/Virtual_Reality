@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /* All classes about mesh operations. */
-namespace MeshOP
+namespace ToothDebug
 {
     public class BoundingBox
     {
@@ -17,16 +17,24 @@ namespace MeshOP
         private Vector3 v3BackBottomLeft;
         private Vector3 v3BackBottomRight;
 
+        private Teeth teeth;
+
+        public void Init() {
+            teeth = GameObject.Find("/Tooth").GetComponent<Teeth>();
+        }
+
         public void SetBoxColor(Color i_color) {
             color = i_color;
         }
 
-        public void DrawBoundingBox(Transform transform, Bounds bounds) {
-            CalcPositons(transform, bounds);
+        public void DrawBoundingBox(uint id) {
+            CalcPositons(id);
             DrawBox();
         }
 
-        private void CalcPositons(Transform transform, Bounds bounds) {
+        private void CalcPositons(uint id) {
+            Transform transform = teeth.obj[id].GetComponent<Transform>();
+            Bounds bounds = teeth.obj[id].GetComponent<MeshFilter>().mesh.bounds;
             Vector3 v3Center = bounds.center;
             Vector3 v3Extents = bounds.extents;
 
