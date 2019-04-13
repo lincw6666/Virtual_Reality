@@ -3,34 +3,25 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 
-public class ImportSTL : MonoBehaviour
+public class ImportSTL
 {
-    public string src_dir_path;
-    public GameObject [] output_obj;
+    private Teeth teeth;
+    private Controller controller;
 
-    private const uint TOOTH_NUM = 32;
-    private Tooth.ToothParam [] teeth;
-    // For debugging.
-    private readonly MeshOP.BoundingBox bound_box = new MeshOP.BoundingBox();
-
-    // Start is called before the first frame update
-    void Start()
+    public void ImportInit()
     {
-        src_dir_path = Application.dataPath + src_dir_path;
+        teeth = GameObject.Find("/Tooth").GetComponent<Teeth>();
+        controller = GameObject.Find("/Controller").GetComponent<Controller>();
 
         // Exit the app if source directory does not exist.
-        if (!Directory.Exists(src_dir_path)) {
-            Debug.Log("No such directory: " + src_dir_path);
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
+        if (!Directory.Exists(controller.src_dir_path)) {
+            Debug.Log("No such directory: " + controller.src_dir_path);
+            controller.QuitApp();
         }
-
+        
         // Import all stl models which are under data/separated/initial.
-        for (int i = 0; i < TOOTH_NUM; i++) {
-            string src_path = src_dir_path + i.ToString() + ".stl";
+        for (int i = 0; i < teeth.TOOTH_NUM; i++) {
+            string src_path = controller.src_dir_path + i.ToString() + ".stl";
             Mesh mesh;
             Material material;
 
@@ -39,68 +30,46 @@ public class ImportSTL : MonoBehaviour
             mesh = Parabox.STL.pb_Stl_Importer.Import(src_path)[0];
             material = new Material(Shader.Find("VR_Final_Project/MyPhongShader"));
 
-            output_obj[i].GetComponent<MeshFilter>().mesh = mesh;
-            output_obj[i].GetComponent<MeshRenderer>().material = material;
+            teeth.obj[i].GetComponent<MeshFilter>().mesh = mesh;
+            teeth.obj[i].GetComponent<MeshRenderer>().material = material;
         }
 
         // Set teeth parameters.
-        teeth = new Tooth.ToothParam[TOOTH_NUM];
-        for (int i = 0; i < TOOTH_NUM; i++) {
-            teeth[i] = new Tooth.ToothParam(
-                output_obj[i].GetComponent<MeshFilter>().mesh, 
+        teeth.param = new Tooth.ToothParam[teeth.TOOTH_NUM];
+        for (int i = 0; i < teeth.TOOTH_NUM; i++) {
+            teeth.param[i] = new Tooth.ToothParam(
+                teeth.obj[i].GetComponent<MeshFilter>().mesh, 
                 new Vector3(),
                 i
             );
         }
         // Set lingual's position and v2.
-        Vector3 lingual_pos = (output_obj[18].transform.TransformPoint(teeth[18].GetCenter()) +
-                                output_obj[31].transform.TransformPoint(teeth[31].GetCenter())) / 2.0f;
-        for (int i = 0; i < TOOTH_NUM; i++) {
-            teeth[i].SetV2(lingual_pos);
+        Vector3 lingual_pos = (teeth.obj[18].transform.TransformPoint(teeth.param[18].GetCenter()) +
+                                teeth.obj[31].transform.TransformPoint(teeth.param[31].GetCenter())) / 2.0f;
+        for (int i = 0; i < teeth.TOOTH_NUM; i++) {
+            teeth.param[i].SetLingualPos(lingual_pos);
         }
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        /***********************************************************
-         * Debug message
-         **********************************************************/
-        for (int i = 0; i < TOOTH_NUM; i++) {
-            // Draw bounding box.
-            DrawBoundingBox((uint) i);
-
-            // Draw v1, v2 of each tooth.
-            DrawV1(output_obj[i].GetComponent<Transform>(), (uint) i);
-            DrawV2(output_obj[i].GetComponent<Transform>(), (uint) i);
+    public void ImportFinal(GameObject f_obj) {
+        // Exit the app if final directory does not exist.
+        teeth = GameObject.Find("/Tooth").GetComponent<Teeth>();
+        controller = GameObject.Find("/Controller").GetComponent<Controller>();
+        if (!Directory.Exists(controller.final_dir_path)) {
+            Debug.Log("No such directory: " + controller.final_dir_path);
+            controller.QuitApp();
         }
-        /***********************************************************
-         * End Debug message
-         **********************************************************/
-    }
 
-    /***********************************************************
-     * Debug functions
-     **********************************************************/
-    void DrawBoundingBox(uint id) {
-        bound_box.DrawBoundingBox(
-            output_obj[id].GetComponent<Transform>(),
-            output_obj[id].GetComponent<MeshFilter>().mesh.bounds
-        );
-    }
+        Teeth f_teeth;
 
-    void DrawV1(Transform transform, uint id) {
-        Vector3 world_center = transform.TransformPoint(teeth[id].GetCenter());
-        Vector3 world_v1 = transform.TransformPoint(teeth[id].GetCenter() + teeth[id].GetV1()*20.0f);
-        Debug.DrawLine(world_center, world_v1, Color.green);
+        f_teeth = f_obj.GetComponent<Teeth>();
+        for (int i = 0; i < teeth.TOOTH_NUM; i++) {
+            string src_path = controller.final_dir_path + i.ToString() + ".stl";
+            f_obj.GetComponent<Teeth>().obj[i] = new GameObject();
+            if (!File.Exists(src_path)) continue;
+
+            f_obj.GetComponent<Teeth>().obj[i].AddComponent<MeshFilter>();
+            f_teeth.obj[i].GetComponent<MeshFilter>().mesh = Parabox.STL.pb_Stl_Importer.Import(src_path)[0];
+        }
     }
-    
-    void DrawV2(Transform transform, uint id) {
-        Vector3 world_lingual = transform.TransformPoint(teeth[id].GetLingualPos());
-        Vector3 world_v2 = transform.TransformPoint(teeth[id].GetLingualPos() + teeth[id].GetV2() * 30.0f);
-        Debug.DrawLine(world_lingual, world_v2, Color.red);
-    }
-    /***********************************************************
-     * End Debug functions
-     **********************************************************/
 }
