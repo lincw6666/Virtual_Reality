@@ -30,7 +30,7 @@ namespace Tooth
         }
 
         public ToothParam(Mesh obj_mesh, Vector3 lingual_pos, int id) {
-            SetToothParam(obj_mesh, lingual_pos, id);
+            SetToothParam(obj_mesh.normals, obj_mesh.bounds.center, lingual_pos, id);
         }
 
         /*************************************************
@@ -40,6 +40,11 @@ namespace Tooth
         /*************************************************
          * Access private datas
          ************************************************/
+
+        public void SetV1Vec(Vector3 v) { v1 = v; }
+        public void SetV2Vec(Vector3 v) { v2 = v; SetV3(); }
+        public void SetCenter(Vector3 pos) { center = pos; SetV2(); }
+        public void SetLingualPos(Vector3 pos) { lingual_pos = pos; SetV2(); }
 
         public Vector3 GetV1() { return v1; }
         public Vector3 GetV2() { return v2; }
@@ -67,17 +72,16 @@ namespace Tooth
          * Build tooth vectors
          ************************************************/
 
-        public void SetToothParam(Mesh obj_mesh, Vector3 i_lingual_pos, int id) {
-            SetV1(obj_mesh.normals, id);
-            SetCenter(obj_mesh.bounds.center);
-            SetV2(i_lingual_pos);
+        public void SetToothParam(Vector3[] obj_normals, Vector3 i_center, Vector3 i_lingual_pos, int id) {
+            SetV1(obj_normals, id);
+            SetCenter(i_center);
+            SetLingualPos(i_lingual_pos);
         }
         
         private void SetV1(Vector3 [] normal, int id) {
+            if (normal.Length == 0) return;
+
             uint sample_num = (uint) normal.Length / 500;
-
-            if (normal.Length == 0) return ;
-
             Vector3 [] rand_normal = new Vector3[sample_num];
             uint [] cnt = new uint[sample_num];
             Vector3 y;
@@ -95,7 +99,7 @@ namespace Tooth
                         break;
                     }
                     // Choose normals which are orthogonal to the xz plane.
-                    if (Vector3.Dot(normal[now_id].normalized, y) > 0.96f) {
+                    if (Vector3.Dot(normal[now_id].normalized, y) > 0.94f) {
                         rand_normal[i] = normal[now_id++].normalized;
                         break;
                     }
@@ -124,24 +128,19 @@ namespace Tooth
             // Choose the average of the normals which are similar to rand_normal[max_id].
             v1 = new Vector3();
             for (int i = 0; i < normal.Length; i++) {
-                if (Vector3.Dot(normal[i].normalized, rand_normal[max_id]) > 0.8f)
+                if (Vector3.Dot(normal[i].normalized, rand_normal[max_id]) > 0.7f)
                     v1 += normal[i];
             }
             v1 = v1.normalized;
         }
 
-        public void SetV2(Vector3 i_lingual_pos) {
-            lingual_pos = i_lingual_pos;
+        private void SetV2() {
             v2 = Vector3.Normalize(center - lingual_pos);
             SetV3();
         }
 
         private void SetV3() {
             v3 = Vector3.Cross(v1, v2).normalized;
-        }
-
-        private void SetCenter(Vector3 i_center) {
-            center = i_center;
         }
 
         /*************************************************
