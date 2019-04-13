@@ -20,7 +20,7 @@ namespace ToothDebug
         private Teeth teeth;
 
         public void Init() {
-            teeth = GameObject.Find("/Tooth").GetComponent<Teeth>();
+            teeth = GameObject.Find("/Teeth").GetComponent<Teeth>();
         }
 
         public void SetBoxColor(Color i_color) {
@@ -74,6 +74,24 @@ namespace ToothDebug
             Debug.DrawLine(v3FrontBottomRight, v3BackBottomRight, color);
             Debug.DrawLine(v3FrontBottomLeft, v3BackBottomLeft, color);
             //}
+        }
+
+        public void DrawBox(uint id) {
+            Transform transform = teeth.obj[id].GetComponent<Transform>();
+            Vector3 center = teeth.param[id].GetCenter();
+            Vector3 v1 = teeth.param[id].GetV1();
+            Vector3 v3 = teeth.param[id].GetV3();
+            float w = teeth.param[id].width / 2.0f / v3.magnitude;
+            float h = teeth.param[id].height / 2.0f / v1.magnitude;
+            Vector3 world_left_up = transform.TransformPoint(center - w * v3 + h * v1);
+            Vector3 world_right_up = transform.TransformPoint(center + w * v3 + h * v1);
+            Vector3 world_left_down = transform.TransformPoint(center - w * v3 - h * v1);
+            Vector3 world_right_down = transform.TransformPoint(center + w * v3 - h * v1);
+
+            Debug.DrawLine(world_left_up, world_right_up, Color.blue);
+            Debug.DrawLine(world_left_up, world_left_down, Color.blue);
+            Debug.DrawLine(world_right_up, world_right_down, Color.blue);
+            Debug.DrawLine(world_left_down, world_right_down, Color.blue);
         }
     }
 }
