@@ -20,14 +20,14 @@ public class Controller : MonoBehaviour
     {
         src_dir_path = Application.dataPath + src_dir_path;
         final_dir_path = Application.dataPath + final_dir_path;
-        teeth = GameObject.Find("/Tooth").GetComponent<Teeth>();
+        teeth = GameObject.Find("/Teeth").GetComponent<Teeth>();
         // Import teeth.
         import.ImportInit();
         // Transform teeth to correct position.
         tooth_transform.Init();
         tooth_transform.SetCorrectPosition();
         // Initialize debug classes.
-        //bound_box.Init();
+        bound_box.Init();
         debug_vec.Init();
     }
 
@@ -39,11 +39,12 @@ public class Controller : MonoBehaviour
         for (int i = 0; i < teeth.TOOTH_NUM; i++) {
             // Draw bounding box.
             //bound_box.DrawBoundingBox((uint)i);
+            bound_box.DrawBox((uint)i);
 
             // Draw v1, v2 of each tooth.
             debug_vec.DrawV1((uint)i);
             debug_vec.DrawV2((uint)i);
-        }
+                    }
         /***********************************************************
          * End Debug message
          **********************************************************/

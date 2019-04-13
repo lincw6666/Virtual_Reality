@@ -10,7 +10,7 @@ public class ImportSTL
 
     public void ImportInit()
     {
-        teeth = GameObject.Find("/Tooth").GetComponent<Teeth>();
+        teeth = GameObject.Find("/Teeth").GetComponent<Teeth>();
         controller = GameObject.Find("/Controller").GetComponent<Controller>();
 
         // Exit the app if source directory does not exist.
@@ -53,7 +53,7 @@ public class ImportSTL
 
     public void ImportFinal(GameObject f_obj) {
         // Exit the app if final directory does not exist.
-        teeth = GameObject.Find("/Tooth").GetComponent<Teeth>();
+        teeth = GameObject.Find("/Teeth").GetComponent<Teeth>();
         controller = GameObject.Find("/Controller").GetComponent<Controller>();
         if (!Directory.Exists(controller.final_dir_path)) {
             Debug.Log("No such directory: " + controller.final_dir_path);

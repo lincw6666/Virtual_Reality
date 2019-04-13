@@ -9,7 +9,7 @@ namespace ToothDebug
         private Teeth teeth;
 
         public void Init() {
-            teeth = GameObject.Find("/Tooth").GetComponent<Teeth>();
+            teeth = GameObject.Find("/Teeth").GetComponent<Teeth>();
         }
 
         public void DrawV1(uint id) {
