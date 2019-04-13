@@ -7,6 +7,7 @@ namespace Tooth
 {
     public class ToothParam
     {
+        public float width, height;
         /*
          * The following 3 vectores are for rotating and translating the tooth.
          * v1: point from root to top of tooth.
@@ -26,10 +27,12 @@ namespace Tooth
             v1 = new Vector3();
             v2 = new Vector3();
             v3 = new Vector3();
+            width = 0.0f; height = 0.0f;
             center = new Vector3();
         }
 
         public ToothParam(Mesh obj_mesh, Vector3 lingual_pos, int id) {
+            width = 0.0f; height = 0.0f;
             SetToothParam(obj_mesh.normals, obj_mesh.bounds.center, lingual_pos, id);
         }
 
@@ -41,9 +44,12 @@ namespace Tooth
          * Access private datas
          ************************************************/
 
-        public void SetV1Vec(Vector3 v) { v1 = v; }
+        public void SetV1Vec(Vector3 v) { v1 = v; SetV3(); }
         public void SetV2Vec(Vector3 v) { v2 = v; SetV3(); }
-        public void SetCenter(Vector3 pos) { center = pos; SetV2(); }
+        public void SetCenter(Vector3 pos, bool is_set_v2) {
+            center = pos;
+            if (is_set_v2) SetV2();
+        }
         public void SetLingualPos(Vector3 pos) { lingual_pos = pos; SetV2(); }
 
         public Vector3 GetV1() { return v1; }
@@ -74,7 +80,7 @@ namespace Tooth
 
         public void SetToothParam(Vector3[] obj_normals, Vector3 i_center, Vector3 i_lingual_pos, int id) {
             SetV1(obj_normals, id);
-            SetCenter(i_center);
+            SetCenter(i_center, true);
             SetLingualPos(i_lingual_pos);
         }
         
