@@ -12,7 +12,7 @@ namespace Tooth
         private readonly ImportSTL import = new ImportSTL();
 
         public void Init() {
-            teeth = GameObject.Find("/Tooth").GetComponent<Teeth>();
+            teeth = GameObject.Find("/Teeth").GetComponent<Teeth>();
             controller = GameObject.Find("/Controller").GetComponent<Controller>();
         }
 
@@ -68,18 +68,26 @@ namespace Tooth
                 rotate_yz_final = Quaternion.Inverse(rotate_yz_final);
                 // Set initial to final rotation quaternion.
                 rotate_init_final = rotate_yz_final * rotate_init_yz;
-                
+
                 // Move to the correct position.
                 vertices = i_mesh.vertices;
                 for (int j = 0; j < i_mesh.vertexCount; j++) {
-                    vertices[j] = rotate_init_final * vertices[j];
+                    vertices[j] = rotate_init_yz * vertices[j];     // Align with yz axes.
+
+                    // Update width, height.
+                    float disty = Vector3.Distance(new Vector3(0, vertices[j].y, 0), vertices[j]) * 2.0f;
+                    float distx = Vector3.Distance(new Vector3(vertices[j].x, 0, 0), vertices[j]) * 2.0f;
+                    if (disty > teeth.param[i].width) teeth.param[i].width = disty;
+                    if (distx > teeth.param[i].height) teeth.param[i].height = distx;
+
+                    vertices[j] = rotate_yz_final * vertices[j];
                     vertices[j] += f_mesh[i].bounds.center;
                 }
                 teeth.obj[i].GetComponent<MeshFilter>().mesh.vertices = vertices;
 
                 // Set tooth parameters.
                 teeth.param[i].SetV1Vec(f_teeth.param[i].GetV1());
-                teeth.param[i].SetCenter(f_mesh[i].bounds.center);
+                teeth.param[i].SetCenter(f_mesh[i].bounds.center, true);
             }
 
             // Destroy final teeth's object.
