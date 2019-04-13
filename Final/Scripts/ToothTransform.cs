@@ -96,5 +96,119 @@ namespace Tooth
             }
             GameObject.Destroy(f_obj);
         }
+
+        public void TranslateVx(uint t_id, uint v_id, float speed) {
+            Mesh mesh;
+            Vector3[] vertices;
+            Vector3 v_mov = new Vector3();
+
+            switch (v_id) {
+                case 1:
+                    v_mov = teeth.param[t_id].GetV1();
+                    break;
+                case 2:
+                    v_mov = teeth.param[t_id].GetV2();
+                    break;
+                case 3:
+                    v_mov = teeth.param[t_id].GetV3();
+                    break;
+                default:
+                    return;
+            }
+
+            mesh = teeth.obj[t_id].GetComponent<MeshFilter>().mesh;
+            vertices = mesh.vertices;
+            for (int i = 0; i < mesh.vertexCount; i++) {
+                vertices[i] += speed * v_mov;
+            }
+            teeth.obj[t_id].GetComponent<MeshFilter>().mesh.vertices = vertices;
+
+            // Update center.
+            teeth.param[t_id].SetCenter(teeth.param[t_id].GetCenter() + speed * v_mov, false);
+        }
+
+        public void RotateVx(uint t_id, uint v_id, float degree) {
+            Mesh mesh;
+            Vector3[] vertices;
+            Vector3 axis = new Vector3();
+
+            switch (v_id) {
+                case 1:
+                    axis = teeth.param[t_id].GetV1();
+                    break;
+                case 2:
+                    axis = teeth.param[t_id].GetV2();
+                    break;
+                default:
+                    return;
+            }
+
+            mesh = teeth.obj[t_id].GetComponent<MeshFilter>().mesh;
+            vertices = mesh.vertices;
+            for (int i = 0; i < mesh.vertexCount; i++) {
+                vertices[i] -= teeth.param[t_id].GetCenter();     // Move to origin.
+                vertices[i] = Quaternion.AngleAxis(degree, axis) * vertices[i]; // Rotate.
+                vertices[i] += teeth.param[t_id].GetCenter();     // Move back.
+            }
+            teeth.obj[t_id].GetComponent<MeshFilter>().mesh.vertices = vertices;
+
+            // Update v.
+            if (v_id == 1)
+                teeth.param[t_id].SetV2Vec(Quaternion.AngleAxis(degree, axis) * teeth.param[t_id].GetV2());
+            else
+                teeth.param[t_id].SetV1Vec(Quaternion.AngleAxis(degree, axis) * teeth.param[t_id].GetV1());
+        }
+
+        public void RotateBox(uint t_id, string side, float degree) {
+            Mesh mesh;
+            Vector3[] vertices;
+            Vector3 axis = new Vector3();
+            Vector3 point = new Vector3();
+            Vector3 center = teeth.param[t_id].GetCenter();
+            Vector3 v1_point = center + teeth.param[t_id].GetV1();
+            Vector3 v2_point = center + teeth.param[t_id].GetV2();
+
+            switch (side) {
+                case "up":
+                    axis = teeth.param[t_id].GetV3();
+                    point = center + (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV1().magnitude) * teeth.param[t_id].GetV1();
+                    break;
+                case "down":
+                    axis = teeth.param[t_id].GetV3();
+                    point = center - (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV1().magnitude) * teeth.param[t_id].GetV1();
+                    break;
+                case "left":
+                    axis = teeth.param[t_id].GetV1();
+                    point = center - (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV3().magnitude) * teeth.param[t_id].GetV3();
+                    break;
+                case "right":
+                    axis = teeth.param[t_id].GetV1();
+                    point = center + (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV3().magnitude) * teeth.param[t_id].GetV3();
+                    break;
+                default:
+                    return;
+            }
+
+            mesh = teeth.obj[t_id].GetComponent<MeshFilter>().mesh;
+            vertices = mesh.vertices;
+            for (int i = 0; i < mesh.vertexCount; i++) {
+                vertices[i] -= point;     // Move to origin.
+                vertices[i] = Quaternion.AngleAxis(degree, axis) * vertices[i]; // Rotate.
+                vertices[i] += point;     // Move back.
+            }
+            teeth.obj[t_id].GetComponent<MeshFilter>().mesh.vertices = vertices;
+
+            // Update center.
+            center = Quaternion.AngleAxis(degree, axis) * (center - point) + point;
+            teeth.param[t_id].SetCenter(
+                center,
+                false
+            );
+            // Update v.
+            v1_point = Quaternion.AngleAxis(degree, axis) * (v1_point - point) + point;
+            v2_point = Quaternion.AngleAxis(degree, axis) * (v2_point - point) + point;
+            teeth.param[t_id].SetV1Vec(v1_point - center);
+            teeth.param[t_id].SetV2Vec(v2_point - center);
+        }
     }
 }
