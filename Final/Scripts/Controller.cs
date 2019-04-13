@@ -48,6 +48,36 @@ public class Controller : MonoBehaviour
         /***********************************************************
          * End Debug message
          **********************************************************/
+
+        /***********************************************************
+         * Keyboard Event
+         **********************************************************/
+
+        if (Input.GetKey("r")) {
+            float degree = 30 * Time.deltaTime;
+            if (Input.GetKey("-")) degree = -degree;
+            if (Input.GetKey("1")) tooth_transform.RotateVx(2, 1, degree);
+            if (Input.GetKey("2")) tooth_transform.RotateVx(2, 2, degree);
+        }
+        if (Input.GetKey("t")) {
+            float speed = 3 * Time.deltaTime;
+            if (Input.GetKey("-")) speed = -speed;
+            if (Input.GetKey("1")) tooth_transform.TranslateVx(2, 1, speed);
+            if (Input.GetKey("2")) tooth_transform.TranslateVx(2, 2, speed);
+            if (Input.GetKey("3")) tooth_transform.TranslateVx(2, 3, speed);
+        }
+        if (Input.GetKey("s")) {
+            float degree = 30 * Time.deltaTime;
+            if (Input.GetKey("-")) degree = -degree;
+            if (Input.GetKey("up")) tooth_transform.RotateBox(2, "up", degree);
+            if (Input.GetKey("down")) tooth_transform.RotateBox(2, "down", degree);
+            if (Input.GetKey("left")) tooth_transform.RotateBox(2, "left", degree);
+            if (Input.GetKey("right")) tooth_transform.RotateBox(2, "right", degree);
+        }
+
+        /***********************************************************
+         * Keyboard Event
+         **********************************************************/
     }
 
     public void QuitApp() {
