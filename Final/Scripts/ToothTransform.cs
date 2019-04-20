@@ -43,7 +43,7 @@ namespace Tooth
                 Vector3 v1i, v1f, v3i, v3f;     // v1, v3 for initial and final
                 Quaternion rotate_init_yz;      // rotate the tooth making v1 match y, v3 match z
                 Quaternion rotate_yz_final;     // rotate from yz to final v1, v3
-                Quaternion rotate_init_final;   // rotate from initial to final
+                //Quaternion rotate_init_final;   // rotate from initial to final
 
                 // Get v1, v3.
                 f_teeth.param[i] = new ToothParam(f_mesh[i], f_lingual_pos, i);
@@ -67,7 +67,7 @@ namespace Tooth
                 rotate_yz_final = Quaternion.FromToRotation(rotate_yz_final * v3f, Vector3.forward).normalized * rotate_yz_final;
                 rotate_yz_final = Quaternion.Inverse(rotate_yz_final);
                 // Set initial to final rotation quaternion.
-                rotate_init_final = rotate_yz_final * rotate_init_yz;
+                //rotate_init_final = rotate_yz_final * rotate_init_yz;
 
                 // Move to the correct position.
                 vertices = i_mesh.vertices;
@@ -88,6 +88,9 @@ namespace Tooth
                 // Set tooth parameters.
                 teeth.param[i].SetV1Vec(f_teeth.param[i].GetV1());
                 teeth.param[i].SetCenter(f_mesh[i].bounds.center, true);
+                // Set mesh collider.
+                teeth.obj[i].GetComponent<MeshCollider>().sharedMesh
+                    = teeth.obj[i].GetComponent<MeshFilter>().mesh;
             }
 
             // Destroy final teeth's object.
