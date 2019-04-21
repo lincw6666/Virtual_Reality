@@ -6,5 +6,5 @@ public class Teeth : MonoBehaviour
 {
     public GameObject[] obj;
     public Tooth.ToothParam[] param;
-    public readonly uint TOOTH_NUM = 32;
+    public static readonly uint TOOTH_NUM = 32;
 }

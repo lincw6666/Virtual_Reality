@@ -19,22 +19,22 @@ namespace Tooth
         public void SetCorrectPosition() {
             GameObject f_obj = new GameObject("Final Teeth");
             Teeth f_teeth;
-            Mesh[] f_mesh = new Mesh[teeth.TOOTH_NUM];
+            Mesh[] f_mesh = new Mesh[Teeth.TOOTH_NUM];
             Vector3 f_lingual_pos;
 
             // Import all final teeth.
             f_obj.AddComponent<Teeth>();
-            f_obj.GetComponent<Teeth>().obj = new GameObject[teeth.TOOTH_NUM];
-            f_obj.GetComponent<Teeth>().param = new ToothParam[teeth.TOOTH_NUM];
+            f_obj.GetComponent<Teeth>().obj = new GameObject[Teeth.TOOTH_NUM];
+            f_obj.GetComponent<Teeth>().param = new ToothParam[Teeth.TOOTH_NUM];
             import.ImportFinal(f_obj);
             f_teeth = f_obj.GetComponent<Teeth>();
-            for (int i = 0; i < teeth.TOOTH_NUM; i++) {
+            for (int i = 0; i < Teeth.TOOTH_NUM; i++) {
                 if (f_teeth.obj[i].GetComponent<MeshFilter>())
                     f_mesh[i] = f_teeth.obj[i].GetComponent<MeshFilter>().mesh;
             }
             f_lingual_pos = (f_mesh[18].bounds.center + f_mesh[31].bounds.center) / 2.0f;
 
-            for (int i = 0; i < teeth.TOOTH_NUM; i++) {
+            for (int i = 0; i < Teeth.TOOTH_NUM; i++) {
                 if (!f_mesh[i]) continue;   // Skip missing teeth.
 
                 Mesh i_mesh = teeth.obj[i].GetComponent<MeshFilter>().mesh;
@@ -106,13 +106,13 @@ namespace Tooth
             Vector3 v_mov = new Vector3();
 
             switch (v_id) {
-                case 1:
+                case (uint)Controller.AXIS.v1:
                     v_mov = teeth.param[t_id].GetV1();
                     break;
-                case 2:
+                case (uint)Controller.AXIS.v2:
                     v_mov = teeth.param[t_id].GetV2();
                     break;
-                case 3:
+                case (uint)Controller.AXIS.v3:
                     v_mov = teeth.param[t_id].GetV3();
                     break;
                 default:
@@ -128,6 +128,9 @@ namespace Tooth
 
             // Update center.
             teeth.param[t_id].SetCenter(teeth.param[t_id].GetCenter() + speed * v_mov, false);
+            // Update collider.
+            teeth.obj[t_id].GetComponent<MeshCollider>().sharedMesh
+                = teeth.obj[t_id].GetComponent<MeshFilter>().mesh;
         }
 
         public void RotateVx(uint t_id, uint v_id, float degree) {
@@ -136,10 +139,10 @@ namespace Tooth
             Vector3 axis = new Vector3();
 
             switch (v_id) {
-                case 1:
+                case (uint)Controller.AXIS.v1:
                     axis = teeth.param[t_id].GetV1();
                     break;
-                case 2:
+                case (uint)Controller.AXIS.v2:
                     axis = teeth.param[t_id].GetV2();
                     break;
                 default:
@@ -160,9 +163,12 @@ namespace Tooth
                 teeth.param[t_id].SetV2Vec(Quaternion.AngleAxis(degree, axis) * teeth.param[t_id].GetV2());
             else
                 teeth.param[t_id].SetV1Vec(Quaternion.AngleAxis(degree, axis) * teeth.param[t_id].GetV1());
+            // Update collider.
+            teeth.obj[t_id].GetComponent<MeshCollider>().sharedMesh
+                = teeth.obj[t_id].GetComponent<MeshFilter>().mesh;
         }
 
-        public void RotateBox(uint t_id, string side, float degree) {
+        public void RotateBox(uint t_id, uint side, float degree) {
             Mesh mesh;
             Vector3[] vertices;
             Vector3 axis = new Vector3();
@@ -172,19 +178,19 @@ namespace Tooth
             Vector3 v2_point = center + teeth.param[t_id].GetV2();
 
             switch (side) {
-                case "up":
+                case (uint)Controller.AXIS.up:
                     axis = teeth.param[t_id].GetV3();
                     point = center + (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV1().magnitude) * teeth.param[t_id].GetV1();
                     break;
-                case "down":
+                case (uint)Controller.AXIS.down:
                     axis = teeth.param[t_id].GetV3();
                     point = center - (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV1().magnitude) * teeth.param[t_id].GetV1();
                     break;
-                case "left":
+                case (uint)Controller.AXIS.left:
                     axis = teeth.param[t_id].GetV1();
                     point = center - (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV3().magnitude) * teeth.param[t_id].GetV3();
                     break;
-                case "right":
+                case (uint)Controller.AXIS.right:
                     axis = teeth.param[t_id].GetV1();
                     point = center + (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV3().magnitude) * teeth.param[t_id].GetV3();
                     break;
@@ -212,6 +218,9 @@ namespace Tooth
             v2_point = Quaternion.AngleAxis(degree, axis) * (v2_point - point) + point;
             teeth.param[t_id].SetV1Vec(v1_point - center);
             teeth.param[t_id].SetV2Vec(v2_point - center);
+            // Update collider.
+            teeth.obj[t_id].GetComponent<MeshCollider>().sharedMesh
+                = teeth.obj[t_id].GetComponent<MeshFilter>().mesh;
         }
     }
 }

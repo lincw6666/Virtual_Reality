@@ -7,6 +7,7 @@ namespace Tooth
 {
     public class ToothParam
     {
+        /* Define the bounding box of a tooth. */
         public float width, height;
         /*
          * The following 3 vectores are for rotating and translating the tooth.
@@ -41,7 +42,7 @@ namespace Tooth
          ************************************************/
 
         /*************************************************
-         * Access private datas
+         * Access datas
          ************************************************/
 
         public void SetV1Vec(Vector3 v) { v1 = v; SetV3(); }
