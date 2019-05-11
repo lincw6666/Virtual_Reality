@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.IO;
 
 namespace Tooth
 {
@@ -74,11 +73,19 @@ namespace Tooth
                 for (int j = 0; j < i_mesh.vertexCount; j++) {
                     vertices[j] = rotate_init_yz * vertices[j];     // Align with yz axes.
 
+                    /*
                     // Update width, height.
                     float disty = Vector3.Distance(new Vector3(0, vertices[j].y, 0), vertices[j]) * 2.0f;
                     float distx = Vector3.Distance(new Vector3(vertices[j].x, 0, 0), vertices[j]) * 2.0f;
                     if (disty > teeth.param[i].width) teeth.param[i].width = disty;
                     if (distx > teeth.param[i].height) teeth.param[i].height = distx;
+                    */
+
+                    // Update up, down, left, right.
+                    if (vertices[j].y > teeth.param[i].up) teeth.param[i].up = vertices[j].y;
+                    else if (vertices[j].y < teeth.param[i].down) teeth.param[i].down = vertices[j].y;
+                    if (vertices[j].z > teeth.param[i].right) teeth.param[i].right = vertices[j].z;
+                    else if (vertices[j].z < teeth.param[i].left) teeth.param[i].left = vertices[j].z;
 
                     vertices[j] = rotate_yz_final * vertices[j];
                     vertices[j] += f_mesh[i].bounds.center;
@@ -180,19 +187,19 @@ namespace Tooth
             switch (side) {
                 case (uint)Controller.AXIS.up:
                     axis = teeth.param[t_id].GetV3();
-                    point = center + (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV1().magnitude) * teeth.param[t_id].GetV1();
+                    point = center + (teeth.param[t_id].up / teeth.param[t_id].GetV1().magnitude) * teeth.param[t_id].GetV1();
                     break;
                 case (uint)Controller.AXIS.down:
                     axis = teeth.param[t_id].GetV3();
-                    point = center - (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV1().magnitude) * teeth.param[t_id].GetV1();
+                    point = center + (teeth.param[t_id].down / teeth.param[t_id].GetV1().magnitude) * teeth.param[t_id].GetV1();
                     break;
                 case (uint)Controller.AXIS.left:
                     axis = teeth.param[t_id].GetV1();
-                    point = center - (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV3().magnitude) * teeth.param[t_id].GetV3();
+                    point = center + (teeth.param[t_id].left / teeth.param[t_id].GetV3().magnitude) * teeth.param[t_id].GetV3();
                     break;
                 case (uint)Controller.AXIS.right:
                     axis = teeth.param[t_id].GetV1();
-                    point = center + (teeth.param[t_id].height / 2.0f / teeth.param[t_id].GetV3().magnitude) * teeth.param[t_id].GetV3();
+                    point = center + (teeth.param[t_id].right / teeth.param[t_id].GetV3().magnitude) * teeth.param[t_id].GetV3();
                     break;
                 default:
                     return;

@@ -81,12 +81,22 @@ namespace ToothDebug
             Vector3 center = teeth.param[id].GetCenter();
             Vector3 v1 = teeth.param[id].GetV1();
             Vector3 v3 = teeth.param[id].GetV3();
+            /*
             float w = teeth.param[id].width / 2.0f / v3.magnitude;
             float h = teeth.param[id].height / 2.0f / v1.magnitude;
             Vector3 world_left_up = transform.TransformPoint(center - w * v3 + h * v1);
             Vector3 world_right_up = transform.TransformPoint(center + w * v3 + h * v1);
             Vector3 world_left_down = transform.TransformPoint(center - w * v3 - h * v1);
             Vector3 world_right_down = transform.TransformPoint(center + w * v3 - h * v1);
+            */
+            float u = teeth.param[id].up / v1.magnitude;
+            float d = teeth.param[id].down / v1.magnitude;
+            float l = teeth.param[id].left / v3.magnitude;
+            float r = teeth.param[id].right / v3.magnitude;
+            Vector3 world_left_up = transform.TransformPoint(center + l * v3 + u * v1);
+            Vector3 world_right_up = transform.TransformPoint(center + r * v3 + u * v1);
+            Vector3 world_left_down = transform.TransformPoint(center + l * v3 + d * v1);
+            Vector3 world_right_down = transform.TransformPoint(center + r * v3 + d * v1);
 
             Debug.DrawLine(world_left_up, world_right_up, Color.blue);
             Debug.DrawLine(world_left_up, world_left_down, Color.blue);

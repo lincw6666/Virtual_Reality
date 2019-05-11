@@ -16,7 +16,7 @@ public class ImportSTL
         // Exit the app if source directory does not exist.
         if (!Directory.Exists(controller.src_dir_path)) {
             Debug.Log("No such directory: " + controller.src_dir_path);
-            controller.QuitApp();
+            Controller.QuitApp();
         }
         
         // Import all stl models which are under data/separated/initial.
@@ -57,7 +57,7 @@ public class ImportSTL
         controller = GameObject.Find("/Controller").GetComponent<Controller>();
         if (!Directory.Exists(controller.final_dir_path)) {
             Debug.Log("No such directory: " + controller.final_dir_path);
-            controller.QuitApp();
+            Controller.QuitApp();
         }
 
         Teeth f_teeth;

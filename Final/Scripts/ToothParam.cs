@@ -8,7 +8,7 @@ namespace Tooth
     public class ToothParam
     {
         /* Define the bounding box of a tooth. */
-        public float width, height;
+        public float up, down, left, right;
         /*
          * The following 3 vectores are for rotating and translating the tooth.
          * v1: point from root to top of tooth.
@@ -28,12 +28,12 @@ namespace Tooth
             v1 = new Vector3();
             v2 = new Vector3();
             v3 = new Vector3();
-            width = 0.0f; height = 0.0f;
+            up = 0; down = 0; left = 0; right = 0;
             center = new Vector3();
         }
 
         public ToothParam(Mesh obj_mesh, Vector3 lingual_pos, int id) {
-            width = 0.0f; height = 0.0f;
+            up = 0; down = 0; left = 0; right = 0;
             SetToothParam(obj_mesh.normals, obj_mesh.bounds.center, lingual_pos, id);
         }
 
