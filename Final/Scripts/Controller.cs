@@ -8,6 +8,8 @@ public class Controller : MonoBehaviour
     // Teeth data path.
     public string src_dir_path;
     public string final_dir_path;
+    // Transformation matrix file path.
+    public string transform_matrix_file_path;
 
     /* VR input.*/
     // Inputs
@@ -35,6 +37,8 @@ public class Controller : MonoBehaviour
     private readonly ImportSTL import = new ImportSTL();
     // Tooth transform: translation, rotation and transform to the final position and rotation.
     private readonly Tooth.ToothTransform tooth_transform = new Tooth.ToothTransform();
+    // Write transform matrix to file.
+    private readonly FileIO file = new FileIO();
     // For debugging.
     private readonly ToothDebug.BoundingBox bound_box = new ToothDebug.BoundingBox();
     private readonly ToothDebug.DrawVectors debug_vec = new ToothDebug.DrawVectors();
@@ -56,8 +60,16 @@ public class Controller : MonoBehaviour
     private const uint AXIS_NUM = 8;    // We have 8 axes in total (include non).
     public enum AXIS { non, v1, v2, v3, up, down, left, right }
 
-    // Only for 2D fallback debug.
-    public bool is_pure_2d_debug;
+    /* Public methods */
+    public uint GetNowAxis() { return now_axis; }
+    public int GetNowSelectTooth() { return selected_tooth_id; }
+    public static void QuitApp() {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -65,11 +77,12 @@ public class Controller : MonoBehaviour
         src_dir_path = Application.dataPath + src_dir_path;
         final_dir_path = Application.dataPath + final_dir_path;
         teeth = GameObject.Find("/Teeth").GetComponent<Teeth>();
+        file.Init(transform_matrix_file_path);
         // Import teeth.
         import.ImportInit();
         // Transform teeth to correct position.
         tooth_transform.Init();
-        tooth_transform.SetCorrectPosition();
+        if (SteamVR.active) tooth_transform.SetCorrectPosition();
         // Initialize debug classes.
         bound_box.Init();
         debug_vec.Init();
@@ -100,36 +113,38 @@ public class Controller : MonoBehaviour
             UpdateVRInput();
         }
         else {
-            if (is_pure_2d_debug) {
-                KeyboardEvent();
-                MouseEvent();
+            // Left
+            is_trigger_click[LEFT] = Input.GetMouseButtonDown(0);
+            is_trackpad_press[LEFT] = Input.GetKey("f");
+            is_grip_click[LEFT] = Input.GetKeyDown("z");
+            // Right
+            is_trigger_press[RIGHT] = Input.GetKey("1");
+            is_trackpad_click[RIGHT] = Input.GetKeyDown("j");
+            is_grip_click[RIGHT] = Input.GetKeyDown("x");
+
+            // Write transformation matrix to file.
+            if (Input.GetKeyDown("r")) {
+                WriteTransformMatrix();
             }
-            else {
-                // Left
-                is_trigger_click[LEFT] = Input.GetMouseButtonDown(0);
-                is_trackpad_press[LEFT] = Input.GetKey("f");
-                is_grip_click[LEFT] = Input.GetKeyDown("z");
-                // Right
-                is_trigger_press[RIGHT] = Input.GetKey("1");
-                is_trackpad_click[RIGHT] = Input.GetKeyDown("j");
-                is_grip_click[RIGHT] = Input.GetKeyDown("x");
+            // Move the final position.
+            if (Input.GetKeyDown("t")) {
+                tooth_transform.SetCorrectPosition();
+                WriteTransformMatrix();
             }
         }
         /***********************************************************
          * End 2D Fallback event hanedler
          **********************************************************/
 
-        if (!is_pure_2d_debug) {
-            if (is_trackpad_press[LEFT]) {
-                if (SteamVR.active) laser.SetActive(true);
-                SelectTooth();
-            }
-            else {
-                laser.SetActive(false);
-                SwitchTooth();
-                SwitchAction();
-                ToothAction();
-            }
+        if (is_trackpad_press[LEFT]) {
+            if (SteamVR.active) laser.SetActive(true);
+            SelectTooth();
+        }
+        else {
+            laser.SetActive(false);
+            SwitchTooth();
+            SwitchAction();
+            ToothAction();
         }
     }
 
@@ -165,7 +180,9 @@ public class Controller : MonoBehaviour
                 else selected_tooth_id = -1;
             }
             else {
+                Debug.Log("test");
                 if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hit)) {
+                    Debug.Log("hit");
                     mouse_start_t = Time.time;
                     pre_pos = Input.mousePosition;
                     selected_tooth_id = ToothNameToID(hit.transform.name);
@@ -183,7 +200,7 @@ public class Controller : MonoBehaviour
     }
 
     void SwitchTooth() {
-        if (!IsValidToothID()) return;
+        if (!IsValidToothID(selected_tooth_id)) return;
         int tmp_id = selected_tooth_id;
        
         if (is_grip_click[LEFT]) {
@@ -193,7 +210,7 @@ public class Controller : MonoBehaviour
                 if (selected_tooth_id < 0) selected_tooth_id += (int)Teeth.TOOTH_NUM;
                 selected_tooth_id %= (int)Teeth.TOOTH_NUM;
             }
-            while (!IsValidToothID());
+            while (!IsValidToothID(selected_tooth_id));
             now_axis = (uint)AXIS.non;
         }
         else if (is_grip_click[RIGHT]) {
@@ -203,7 +220,7 @@ public class Controller : MonoBehaviour
                 if (selected_tooth_id < 0) selected_tooth_id += (int)Teeth.TOOTH_NUM;
                 selected_tooth_id %= (int)Teeth.TOOTH_NUM;
             }
-            while (!IsValidToothID());
+            while (!IsValidToothID(selected_tooth_id));
             now_axis = (uint)AXIS.non;
         }        
     }
@@ -219,7 +236,9 @@ public class Controller : MonoBehaviour
 
         // Translate the tooth while holding the left button.
         if (!is_trigger_press[RIGHT]) {
-            if (IsValidAxis("translation") && IsValidToothID()) {
+            if (IsValidAxis("translation") && IsValidToothID(selected_tooth_id)
+                 && (SteamVR.active || Input.GetKey("2")))
+            {
                 tooth_transform.TranslateVx(
                     (uint)selected_tooth_id,
                     now_axis,
@@ -229,7 +248,7 @@ public class Controller : MonoBehaviour
         }
         // Rotate the tooth while holding the right button.
         else {
-            if (IsValidAxis("rotation") && IsValidToothID()) {
+            if (IsValidAxis("rotation") && IsValidToothID(selected_tooth_id)) {
                 if (now_axis <= 2) {
                     tooth_transform.RotateVx(
                         (uint)selected_tooth_id,
@@ -252,109 +271,6 @@ public class Controller : MonoBehaviour
         else pre_pos = now_pos;
     }
 
-    // Only for 2D fallback.
-    void KeyboardEvent() {
-        // Choose axis.
-        if (Input.GetKey("1")) {
-            now_axis = (uint)AXIS.v1;
-        }
-        else if (Input.GetKey("2")) {
-            now_axis = (uint)AXIS.v2;
-        }
-        else if (Input.GetKey("3")) {
-            now_axis = (uint)AXIS.v3;
-        }
-        else if (Input.GetKey("w")) {
-            now_axis = (uint)AXIS.up;
-        }
-        else if (Input.GetKey("s")) {
-            now_axis = (uint)AXIS.down;
-        }
-        else if (Input.GetKey("a")) {
-            if (selected_tooth_id < 16) now_axis = (uint)AXIS.left;
-            else now_axis = (uint)AXIS.right;
-        }
-        else if (Input.GetKey("d")) {
-            if (selected_tooth_id < 16) now_axis = (int)AXIS.right;
-            else now_axis = (uint)AXIS.left;
-        }
-        else {
-            now_axis = (int)AXIS.non;
-        }
-
-        // Choose tooth.
-        if (Input.GetKey("left")) {
-            while (!IsValidToothID())
-                selected_tooth_id = (selected_tooth_id - 1) % (int)Teeth.TOOTH_NUM;
-        }
-        else if (Input.GetKey("right")) {
-            while (!IsValidToothID())
-                selected_tooth_id = (selected_tooth_id + 1) % (int)Teeth.TOOTH_NUM;
-        }
-    }
-
-    // Only for 2D fallback.
-    void MouseEvent() {
-        // Select tooth.
-        if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1)) {
-            RaycastHit hit = new RaycastHit();
-
-            // Do we select a tooth?
-            if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hit)) {
-                mouse_start_t = Time.time;
-                pre_pos = Input.mousePosition;
-                selected_tooth_id = ToothNameToID(hit.transform.name);
-            }
-            else selected_tooth_id = -1;
-        }
-
-        // Translate the tooth while holding the left button.
-        if (Input.GetMouseButton(0)) {
-            if (IsValidAxis("translation") && IsValidToothID()) {
-                if (now_axis == (int)AXIS.non) {
-                    // Choose v1 by default.
-                    tooth_transform.TranslateVx(
-                        (uint)selected_tooth_id,
-                        (uint)AXIS.v1,
-                        ActionSpeeed(Input.mousePosition, (uint)AXIS.v1)
-                    );
-                }
-                else {
-                    tooth_transform.TranslateVx(
-                        (uint)selected_tooth_id,
-                        now_axis,
-                        ActionSpeeed(Input.mousePosition, now_axis)
-                    );
-                }
-            }
-
-            // Update mouse position.
-            pre_pos = Input.mousePosition;
-        }
-        // Rotate the tooth while holding the right button.
-        else if (Input.GetMouseButton(1)) {
-            if (IsValidAxis("rotation") && IsValidToothID()) {
-                if (now_axis <= 2) {
-                    tooth_transform.RotateVx(
-                        (uint)selected_tooth_id,
-                        now_axis,
-                        ActionDegree(Input.mousePosition, now_axis)
-                    );
-                }
-                else {
-                    tooth_transform.RotateBox(
-                        (uint)selected_tooth_id,
-                        now_axis,
-                        ActionDegree(Input.mousePosition, now_axis)
-                    );
-                }
-            }
-
-            // Update mouse position.
-            pre_pos = Input.mousePosition;
-        }
-    }
-
     int ToothNameToID(string t_name) {
         if (t_name.Length > 9) {
             return int.Parse(string.Concat(t_name[7], t_name[8]));
@@ -375,9 +291,8 @@ public class Controller : MonoBehaviour
         }
     }
 
-    bool IsValidToothID() {
-        return selected_tooth_id >= 0 &&
-            teeth.obj[selected_tooth_id].GetComponent<MeshFilter>().mesh.vertexCount != 0;
+    bool IsValidToothID(int t_id) {
+        return t_id >= 0 && teeth.obj[t_id].GetComponent<MeshFilter>().mesh.vertexCount != 0;
     }
 
     float ActionSpeeed(Vector3 pos, uint axis) {
@@ -428,14 +343,18 @@ public class Controller : MonoBehaviour
         return retval*10;
     }
 
-    public uint GetNowAxis() { return now_axis; }
-    public int GetNowSelectTooth() { return selected_tooth_id; }
+    void WriteTransformMatrix() {
+        file.WriteContent("*******************************************");
+        for (int i = 0; i < Teeth.TOOTH_NUM; i++) {
+            if (!IsValidToothID(i)) continue;
+            Vector3 now_T = tooth_transform.NowT((uint)i);
+            Vector3 now_R = tooth_transform.NowR((uint)i).eulerAngles;
 
-    public static void QuitApp() {
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
+            file.WriteContent("ID: " + i);
+            file.WriteContent(
+                now_T.x.ToString() + " " + now_T.y + " " + now_T.z + " " +
+                now_R.x + " " + now_R.y + " " + now_R.z);
+            teeth.param[i].SetPre();
+        }
     }
 }

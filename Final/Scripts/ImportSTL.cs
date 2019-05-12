@@ -48,6 +48,10 @@ public class ImportSTL
                                 teeth.obj[31].transform.TransformPoint(teeth.param[31].GetCenter())) / 2.0f;
         for (int i = 0; i < Teeth.TOOTH_NUM; i++) {
             teeth.param[i].SetLingualPos(lingual_pos);
+            teeth.param[i].SetPre();
+            // Set mesh collider.
+            teeth.obj[i].GetComponent<MeshCollider>().sharedMesh
+                = teeth.obj[i].GetComponent<MeshFilter>().mesh;
         }
     }
 

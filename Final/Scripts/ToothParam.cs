@@ -20,6 +20,9 @@ namespace Tooth
         private Vector3 center; // Tooth's center in local space.
         private Vector3 lingual_pos;
 
+        /* Use these to calculate the transfomation matrix of each movement. */
+        private Vector3 pre_center, pre_v1, pre_v2;
+
         /*************************************************
          * Constructors
          ************************************************/
@@ -30,6 +33,7 @@ namespace Tooth
             v3 = new Vector3();
             up = 0; down = 0; left = 0; right = 0;
             center = new Vector3();
+            SetPre();
         }
 
         public ToothParam(Mesh obj_mesh, Vector3 lingual_pos, int id) {
@@ -70,6 +74,9 @@ namespace Tooth
         }
         public Vector3 GetCenter() { return center; }
         public Vector3 GetLingualPos() { return lingual_pos; }
+        public Vector3 GetPreCenter() { return pre_center; }
+        public Vector3 GetPreV1() { return pre_v1; }
+        public Vector3 GetPreV2() { return pre_v2; }
 
         /*************************************************
          * End Access private datas
@@ -83,6 +90,7 @@ namespace Tooth
             SetV1(obj_normals, id);
             SetCenter(i_center, true);
             SetLingualPos(i_lingual_pos);
+            SetPre();
         }
         
         private void SetV1(Vector3 [] normal, int id) {
@@ -148,6 +156,12 @@ namespace Tooth
 
         private void SetV3() {
             v3 = Vector3.Cross(v1, v2).normalized;
+        }
+
+        public void SetPre() {
+            pre_center = center;
+            pre_v1 = v1;
+            pre_v2 = v2;
         }
 
         /*************************************************

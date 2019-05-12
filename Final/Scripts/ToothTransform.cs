@@ -9,10 +9,12 @@ namespace Tooth
         private Teeth teeth;
         private Controller controller;
         private readonly ImportSTL import = new ImportSTL();
+        private Vector3 pre_center, pre_v1, pre_v2;
 
         public void Init() {
             teeth = GameObject.Find("/Teeth").GetComponent<Teeth>();
             controller = GameObject.Find("/Controller").GetComponent<Controller>();
+            pre_center = Vector3.zero; pre_v1 = Vector3.zero; pre_v2 = Vector3.zero;
         }
 
         public void SetCorrectPosition() {
@@ -96,8 +98,8 @@ namespace Tooth
                 teeth.param[i].SetV1Vec(f_teeth.param[i].GetV1());
                 teeth.param[i].SetCenter(f_mesh[i].bounds.center, true);
                 // Set mesh collider.
-                teeth.obj[i].GetComponent<MeshCollider>().sharedMesh
-                    = teeth.obj[i].GetComponent<MeshFilter>().mesh;
+                //teeth.obj[i].GetComponent<MeshCollider>().sharedMesh
+                //    = teeth.obj[i].GetComponent<MeshFilter>().mesh;
             }
 
             // Destroy final teeth's object.
@@ -228,6 +230,40 @@ namespace Tooth
             // Update collider.
             teeth.obj[t_id].GetComponent<MeshCollider>().sharedMesh
                 = teeth.obj[t_id].GetComponent<MeshFilter>().mesh;
+        }
+
+        public void SetPre(uint t_id) {
+            pre_center = teeth.param[t_id].GetPreCenter();
+            pre_v1 = teeth.param[t_id].GetPreV1();
+            pre_v2 = teeth.param[t_id].GetPreV2();
+        }
+
+        public Matrix4x4 GetTransformMatrix(uint t_id) {
+            SetPre(t_id);
+            return Matrix4x4.TRS(_NowT(t_id), _NowR(t_id), Vector3.one);
+        }
+
+        public Vector3 NowT(uint t_id) {
+            SetPre(t_id);
+            return _NowT(t_id);
+        }
+
+        public Quaternion NowR(uint t_id) {
+            SetPre(t_id);
+            return _NowR(t_id);
+        }
+
+        /* Return the translation matrix from previous state to now. */
+        private Vector3 _NowT(uint t_id) {
+            return teeth.param[t_id].GetCenter() - pre_center;
+        }
+
+        /* Return the rotation matrix from previous state to now */
+        private Quaternion _NowR(uint t_id) {
+            Vector3 v1 = teeth.param[t_id].GetV1();
+            Vector3 v2 = teeth.param[t_id].GetV2();
+            Quaternion match_v1 = Quaternion.FromToRotation(pre_v1, v1).normalized;
+            return Quaternion.FromToRotation(match_v1 * pre_v2, v2).normalized * match_v1;
         }
     }
 }
