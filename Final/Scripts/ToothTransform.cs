@@ -9,12 +9,12 @@ namespace Tooth
         private Teeth teeth;
         private Controller controller;
         private readonly ImportSTL import = new ImportSTL();
-        private Vector3 pre_center, pre_v1, pre_v2;
+        private Vector3 pre_center, pre_v1, pre_v3;
 
         public void Init() {
             teeth = GameObject.Find("/Teeth").GetComponent<Teeth>();
             controller = GameObject.Find("/Controller").GetComponent<Controller>();
-            pre_center = Vector3.zero; pre_v1 = Vector3.zero; pre_v2 = Vector3.zero;
+            pre_center = Vector3.zero; pre_v1 = Vector3.zero; pre_v3 = Vector3.zero;
         }
 
         public void SetCorrectPosition() {
@@ -235,17 +235,35 @@ namespace Tooth
         public void SetPre(uint t_id) {
             pre_center = teeth.param[t_id].GetPreCenter();
             pre_v1 = teeth.param[t_id].GetPreV1();
-            pre_v2 = teeth.param[t_id].GetPreV2();
+            pre_v3 = teeth.param[t_id].GetPreV3();
+        }
+
+        public void Transform(Matrix4x4[] mat) {
+            if (mat.Length != Teeth.TOOTH_NUM) {
+                Debug.Log("Error transformation matrix lenght: " + mat.Length);
+                return;
+            }
+            for (int i = 0; i < Teeth.TOOTH_NUM; i++) {
+                Mesh mesh = teeth.obj[i].GetComponent<MeshFilter>().mesh;
+                if (mesh.vertexCount == 0) continue;
+                Vector3[] vertices;
+
+                // Tooth transformation.
+                vertices = mesh.vertices;
+                for (int j = 0; j < mesh.vertexCount; j++) {
+                    vertices[j] = mat[i].MultiplyPoint(vertices[j]);
+                }
+                teeth.obj[i].GetComponent<MeshFilter>().mesh.vertices = vertices;
+
+                // Set tooth parameters.
+                teeth.param[i].SetV1Vec(mat[i].MultiplyVector(teeth.param[i].GetV1()));
+                teeth.param[i].SetCenter(mat[i].MultiplyPoint(teeth.param[i].GetCenter()), true);
+            }
         }
 
         public Matrix4x4 GetTransformMatrix(uint t_id) {
             SetPre(t_id);
-            return Matrix4x4.TRS(_NowT(t_id), _NowR(t_id), Vector3.one);
-        }
-
-        public Vector3 NowT(uint t_id) {
-            SetPre(t_id);
-            return _NowT(t_id);
+            return Matrix4x4.Translate(teeth.param[t_id].GetCenter()) * Matrix4x4.Rotate(_NowR(t_id)) * Matrix4x4.Translate(-pre_center);
         }
 
         public Quaternion NowR(uint t_id) {
@@ -253,17 +271,12 @@ namespace Tooth
             return _NowR(t_id);
         }
 
-        /* Return the translation matrix from previous state to now. */
-        private Vector3 _NowT(uint t_id) {
-            return teeth.param[t_id].GetCenter() - pre_center;
-        }
-
         /* Return the rotation matrix from previous state to now */
         private Quaternion _NowR(uint t_id) {
             Vector3 v1 = teeth.param[t_id].GetV1();
-            Vector3 v2 = teeth.param[t_id].GetV2();
+            Vector3 v3 = teeth.param[t_id].GetV3();
             Quaternion match_v1 = Quaternion.FromToRotation(pre_v1, v1).normalized;
-            return Quaternion.FromToRotation(match_v1 * pre_v2, v2).normalized * match_v1;
+            return Quaternion.FromToRotation(match_v1 * pre_v3, v3).normalized * match_v1;
         }
     }
 }

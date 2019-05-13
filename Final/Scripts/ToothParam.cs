@@ -21,7 +21,7 @@ namespace Tooth
         private Vector3 lingual_pos;
 
         /* Use these to calculate the transfomation matrix of each movement. */
-        private Vector3 pre_center, pre_v1, pre_v2;
+        private Vector3 pre_center, pre_v1, pre_v3;
 
         /*************************************************
          * Constructors
@@ -76,7 +76,7 @@ namespace Tooth
         public Vector3 GetLingualPos() { return lingual_pos; }
         public Vector3 GetPreCenter() { return pre_center; }
         public Vector3 GetPreV1() { return pre_v1; }
-        public Vector3 GetPreV2() { return pre_v2; }
+        public Vector3 GetPreV3() { return pre_v3; }
 
         /*************************************************
          * End Access private datas
@@ -161,7 +161,7 @@ namespace Tooth
         public void SetPre() {
             pre_center = center;
             pre_v1 = v1;
-            pre_v2 = v2;
+            pre_v3 = v3;
         }
 
         /*************************************************
