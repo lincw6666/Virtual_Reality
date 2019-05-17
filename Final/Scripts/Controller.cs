@@ -10,6 +10,7 @@ public class Controller : MonoBehaviour
     public string final_dir_path;
     // Transformation matrix file path.
     public string trans_mat_path;
+    public string trans_pos_rot_path;
     public string trans_mat_human_readable_path;
 
     /* VR input.*/
@@ -40,8 +41,16 @@ public class Controller : MonoBehaviour
     private readonly Tooth.ToothTransform tooth_transform = new Tooth.ToothTransform();
     // Write transform matrix to file.
     private readonly FileIO wf_readable = new FileIO();     // For writing humane readable.
-    private readonly FileIO f_trans_mat = new FileIO();    // For r/w pure transformation matrix.
-    public int now_step = 0;       // The step in the given video.
+    private readonly FileIO f_trans_mat = new FileIO();     // For r/w pure transformation matrix.
+    private readonly FileIO f_trans_pos_rot = new FileIO(); // For r/w position and rotation before and after transformation.
+    public int now_step = 0;                // The step in the given video.
+    private bool start_transform = false;   // Start transformation of each step.
+    private bool end_transform = false;
+    private int pre_decode_step = 0;
+    private int now_decode_step = 0;       // The step we've decoded now.
+    private float start_show_step_t = 0;    // Time we start to show a step.
+    private const float show_step_time = 0.5f;  // Show each step for 0.5 sec.
+    private Vector3[] decode_pos, decode_rot;
     // For debugging.
     private readonly ToothDebug.BoundingBox bound_box = new ToothDebug.BoundingBox();
     private readonly ToothDebug.DrawVectors debug_vec = new ToothDebug.DrawVectors();
@@ -56,7 +65,8 @@ public class Controller : MonoBehaviour
 
     // Use mouse to select tooth and store its id here.
     // -1 means that the user doesn't select any tooth.
-    private int selected_tooth_id = -1; 
+    private int selected_tooth_id = -1;
+    private int pre_selected_tooth_id = -1;
     // Trnaslation and rotation with respect to now_axis.
     // non, v1, v2, v3, up, down, left, right. Default is non.
     private uint now_axis = 0;
@@ -85,6 +95,9 @@ public class Controller : MonoBehaviour
         // Transform teeth to correct position.
         tooth_transform.Init();
         if (SteamVR.active) tooth_transform.SetCorrectPosition();
+        // Initivlize decoded pre position, position and rotation.
+        decode_pos = new Vector3[Teeth.TOOTH_NUM];
+        decode_rot = new Vector3[Teeth.TOOTH_NUM];
         // Initialize debug classes.
         bound_box.Init();
         debug_vec.Init();
@@ -124,22 +137,46 @@ public class Controller : MonoBehaviour
             is_trackpad_click[RIGHT] = Input.GetKeyDown("j");
             is_grip_click[RIGHT] = Input.GetKeyDown("x");
 
-            // Update now_step.
-            if (Input.GetKeyDown("0")) {
-                now_step++;
+            if (start_transform) {
+                if (now_step >= now_decode_step) {
+                    if (end_transform) {
+                        start_transform = false;
+                        end_transform = false;
+                        goto END;
+                    }
+                    else {
+                        pre_decode_step = now_decode_step;
+                        DecodePosRot();
+                    }
+                }
+                if (Time.time - start_show_step_t > show_step_time) {
+                    now_step++;
+                    NowStepTransform();
+                    start_show_step_t = Time.time;
+                }
+            END:;   // End transform.
             }
-            // Write transformation matrix to file.
-            if (Input.GetKeyDown("r")) {
-                WriteTransformMatrix();
-            }
-            // Moving to the final position.
-            if (Input.GetKeyDown("t")) {
-                tooth_transform.SetCorrectPosition();
-                WriteTransformMatrix();
-            }
-            // Transform the tooth according to the file.
-            if (Input.GetKeyDown("y")) {
-                ToothTransformPos();
+            else {
+                // Update now_step.
+                if (Input.GetKeyDown("0")) {
+                    now_step++;
+                }
+                else if (Input.GetKeyDown("9")) {
+                    now_step += 10;
+                }
+                // Write transformation matrix to file.
+                if (Input.GetKeyDown("r")) {
+                    WriteTransformMatrix();
+                }
+                // Moving to the final position.
+                if (Input.GetKeyDown("t")) {
+                    tooth_transform.SetCorrectPosition();
+                    WriteTransformMatrix();
+                }
+                // Transform the tooth according to the file.
+                if (Input.GetKeyDown("y")) {
+                    start_transform = true;
+                }
             }
         }
         /***********************************************************
@@ -155,6 +192,15 @@ public class Controller : MonoBehaviour
             SwitchTooth();
             SwitchAction();
             ToothAction();
+        }
+
+        // Change color on selected tooth.
+        if (selected_tooth_id != pre_selected_tooth_id) {
+            if (pre_selected_tooth_id >= 0) {
+                teeth.obj[pre_selected_tooth_id].layer = 0;
+            }
+            teeth.obj[selected_tooth_id].layer = 5;
+            pre_selected_tooth_id = selected_tooth_id;
         }
     }
 
@@ -352,91 +398,132 @@ public class Controller : MonoBehaviour
     }
 
     void WriteTransformMatrix() {
-        string content = now_step.ToString();
+        string encode_mat = now_step.ToString();
+        string pos_rot = now_step.ToString();       // Encoded previous and now position and rotation.
 
         wf_readable.Init(trans_mat_human_readable_path, false, false);
         f_trans_mat.Init(trans_mat_path, false, false);
+        f_trans_pos_rot.Init(trans_pos_rot_path, false, false);
         wf_readable.WriteContent("********** Now step: " + now_step + " **********");
         for (int i = 0; i < Teeth.TOOTH_NUM; i++) {
             if (!IsValidToothID(i)) continue;
             Vector3 now_R = tooth_transform.NowR((uint)i).eulerAngles;
             Matrix4x4 trans_mat = tooth_transform.GetTransformMatrix((uint)i);
+            Vector3 tmp_pre_center = teeth.param[i].GetPreCenter();
+            Vector3 tmp_now_center = teeth.param[i].GetCenter();
 
             // Write human readable info to file.
             wf_readable.WriteContent("ID: " + i);
             wf_readable.WriteContent("    Translation:");
-            wf_readable.WriteContent("        From: ( " + teeth.param[i].GetPreCenter() + " )");
-            wf_readable.WriteContent("        To  : ( " + teeth.param[i].GetCenter() + " )");
+            wf_readable.WriteContent("        From: ( " + tmp_pre_center + " )");
+            wf_readable.WriteContent("        To  : ( " + tmp_now_center + " )");
             wf_readable.WriteContent("    Rotation: ( " + now_R.x + ", " + now_R.y + ", " + now_R.z + " )");
             // Write pure transformation matrix to file.
-            content += " " + i.ToString();
+            encode_mat += " " + i;
             for (int j = 0; j < 4; j++) {
-                content += " " + trans_mat[0, j] + " " + trans_mat[1, j] +
+                encode_mat += " " + trans_mat[0, j] + " " + trans_mat[1, j] +
                     " " + trans_mat[2, j] + " " + trans_mat[3, j];
             }
             teeth.param[i].SetPre();
+            // Write previous and now position and rotation to file.
+            pos_rot += " " + i + " " + tmp_now_center.x + " " + tmp_now_center.y + " " +
+                tmp_now_center.z + " " + now_R.x + " " + now_R.y + " " + now_R.z;
         }
         wf_readable.WriteContent("");
-        f_trans_mat.WriteContent(content);
+        f_trans_mat.WriteContent(encode_mat);
+        f_trans_pos_rot.WriteContent(pos_rot);
     }
 
-    void ToothTransformPos() {
-        Matrix4x4[] mat = new Matrix4x4[Teeth.TOOTH_NUM];
-        string[] input;
-        int step;
+    /* Decode the previous and now position and rotation which are encoded in the file. */
+    void DecodePosRot() {
+        string[] decode_pos_rot;
 
-        // Close the opened file for writing transformation matrix.
-        f_trans_mat.Close();
+        // Close the opened file for writing previous and now position and rotation.
+        f_trans_pos_rot.Close();
 
-        /* Start Move Tooth */
-        f_trans_mat.Init(trans_mat_path, true, true);
+        /********************************************************************************/
+        /*************** Start Decode Pre_Position, Position and Rotation ***************/
+        f_trans_pos_rot.Init(trans_pos_rot_path, true, true);
         // Read the transformation matrix.
         // Skip lines we have already read.
-        for (int i = 0; i < f_trans_mat.now_read_line; i++)
-            f_trans_mat.ReadContent();
-        // Parse the matrix.
-        string tmp = f_trans_mat.ReadContent();
-        if (tmp == null) {
+        for (int i = 0; i < f_trans_pos_rot.now_read_line; i++)
+            f_trans_pos_rot.ReadContent();
+        // Parse the encoded matrix.
+        string encode_pos_rot = f_trans_pos_rot.ReadContent();
+        // Check if we reach the end of file.
+        if (encode_pos_rot == null) {
             Debug.Log("Read end of file.");     // No more transformation.
+            end_transform = true;
             goto EOF;
         }
-        input = tmp.Split(' ');
-        step = int.Parse(input[0]);
-        Debug.Log("Step: " + step);
-        for (int i = 1, now_tid = 0; i < input.Length; i += 17, now_tid++) {
-            int t_id = int.Parse(input[i]);
-            int j = 1;
+        decode_pos_rot = encode_pos_rot.Split(' ');
+        now_decode_step = int.Parse(decode_pos_rot[0]);
+        for (int i = 1, now_tid = 0; i < decode_pos_rot.Length; i += 7, now_tid++) {
+            //Debug.Log(decode_pos_rot[i] + " " + decode_pos_rot[i + 1] + " " +
+            //    decode_pos_rot[i + 2] + " " + decode_pos_rot[i + 3] + " " + decode_pos_rot[i + 4] +
+            //    " " + decode_pos_rot[i + 5] + " " + decode_pos_rot[i + 6]);
+            int t_id = int.Parse(decode_pos_rot[i]);
 
             // Set skip t_id to identity matrix.
-            while (now_tid < t_id)
-                mat[now_tid++] = Matrix4x4.identity;
-            // Parse 16 elements in the transformation matrix.
-            for (int col = 0; col < 4; col++) {
-                for (int row = 0; row < 4; row++) {
-                    mat[now_tid][row, col] = float.Parse(input[i + j++]);
-                }
+            while (now_tid < t_id) {
+                decode_pos[now_tid] = Vector3.zero;
+                decode_rot[now_tid++] = Vector3.zero;
             }
+            // Parse position after transform.
+            decode_pos[now_tid] = new Vector3(
+                float.Parse(decode_pos_rot[i + 1]),
+                float.Parse(decode_pos_rot[i + 2]),
+                float.Parse(decode_pos_rot[i + 3])
+            );
+            // Parse rotation.
+            decode_rot[now_tid] = new Vector3(
+                float.Parse(decode_pos_rot[i + 4]),
+                float.Parse(decode_pos_rot[i + 5]),
+                float.Parse(decode_pos_rot[i + 6])
+            );
+            //Debug.Log("ID: " + now_tid);
+            //Debug.Log(decode_pos[now_tid] + "\n" + decode_rot[now_tid]);
         }
-        /*
-        for (int i = 0; i < Teeth.TOOTH_NUM; i++) {
-            Debug.Log("ID: " + i);
-            for (int row = 0; row < 4; row += 2) {
-                Debug.Log(mat[i][row, 0].ToString() + " " + mat[i][row, 1]
-                    + " " + mat[i][row, 2] + " " + mat[i][row, 3] + "\n" +
-                    mat[i][row + 1, 0] + " " + mat[i][row + 1, 1] + " " +
-                    mat[i][row + 1, 2] + " " + mat[i][row + 1, 3]);
-            }
-        }
-        */
-        // Move the teeth.
-        tooth_transform.Transform(mat);
         // Update where we have read in the file.
-        f_trans_mat.now_read_line++;
+        f_trans_pos_rot.now_read_line++;
     EOF:
-        f_trans_mat.Close();
-        /*  End Move Tooth  */
+        f_trans_pos_rot.Close();
+        /***************  End Decode Pre_Position, Position and Rotation  ***************/
+        /********************************************************************************/
 
         // Reopen the file for writing transformation matrix.
-        f_trans_mat.Init(trans_mat_path, false, true);
+        f_trans_pos_rot.Init(trans_pos_rot_path, false, true);
+    }
+
+    void NowStepTransform() {
+        if (now_step <= 0) return;
+        // Interpolate weight.
+        float base_w = (float)(now_decode_step - now_step +1);
+        float pre_w = (float)(now_decode_step - now_step) / base_w;
+        float now_w = 1f / base_w;
+        float rot_w = 1f / (float)(now_decode_step - pre_decode_step);
+        // Interpolate position and rotation.
+        Vector3 inter_pos, inter_rot;
+        // Transformation matrix build by inter_pos and inter_rot.
+        Matrix4x4[] trans_mat = new Matrix4x4[Teeth.TOOTH_NUM];
+
+        for (int i = 0; i < Teeth.TOOTH_NUM; i++) {
+            // Skip missing tooth.
+            if (decode_pos[i] == Vector3.zero && decode_rot[i] == Vector3.zero) continue;
+
+            // Set interpolation position and rotation.
+            inter_pos = teeth.param[i].GetCenter() * pre_w + decode_pos[i] * now_w;
+            inter_rot = decode_rot[i];
+            if (inter_rot.x >= 180) inter_rot.x -= 360;
+            if (inter_rot.y >= 180) inter_rot.y -= 360;
+            if (inter_rot.z >= 180) inter_rot.z -= 360;
+            inter_rot *= rot_w;
+            // Build transformation matrix
+            trans_mat[i] = Matrix4x4.Translate(inter_pos) *
+                Matrix4x4.Rotate(Quaternion.Euler(inter_rot)) *
+                Matrix4x4.Translate(-teeth.param[i].GetCenter());
+        }
+        // Transform tooth.
+        tooth_transform.Transform(trans_mat);
     }
 }

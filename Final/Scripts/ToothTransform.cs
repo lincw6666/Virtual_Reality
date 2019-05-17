@@ -22,6 +22,8 @@ namespace Tooth
             Teeth f_teeth;
             Mesh[] f_mesh = new Mesh[Teeth.TOOTH_NUM];
             Vector3 f_lingual_pos;
+            int[] down_root_id = new int[2];    // These two teeth define the lingual position.
+            down_root_id[0] = -1;
 
             // Import all final teeth.
             f_obj.AddComponent<Teeth>();
@@ -30,10 +32,16 @@ namespace Tooth
             import.ImportFinal(f_obj);
             f_teeth = f_obj.GetComponent<Teeth>();
             for (int i = 0; i < Teeth.TOOTH_NUM; i++) {
-                if (f_teeth.obj[i].GetComponent<MeshFilter>())
+                if (f_teeth.obj[i].GetComponent<MeshFilter>()) {
                     f_mesh[i] = f_teeth.obj[i].GetComponent<MeshFilter>().mesh;
+                    // Update down_root_id.
+                    if (i >= 16) {
+                        if (down_root_id[0] == -1) down_root_id[0] = i;
+                        down_root_id[1] = i;
+                    }
+                }
             }
-            f_lingual_pos = (f_mesh[18].bounds.center + f_mesh[31].bounds.center) / 2.0f;
+            f_lingual_pos = (f_mesh[down_root_id[0]].bounds.center + f_mesh[down_root_id[1]].bounds.center) / 2.0f;
 
             for (int i = 0; i < Teeth.TOOTH_NUM; i++) {
                 if (!f_mesh[i]) continue;   // Skip missing teeth.
@@ -82,12 +90,13 @@ namespace Tooth
                     if (disty > teeth.param[i].width) teeth.param[i].width = disty;
                     if (distx > teeth.param[i].height) teeth.param[i].height = distx;
                     */
-
+                    /*
                     // Update up, down, left, right.
                     if (vertices[j].y > teeth.param[i].up) teeth.param[i].up = vertices[j].y;
                     else if (vertices[j].y < teeth.param[i].down) teeth.param[i].down = vertices[j].y;
                     if (vertices[j].z > teeth.param[i].right) teeth.param[i].right = vertices[j].z;
                     else if (vertices[j].z < teeth.param[i].left) teeth.param[i].left = vertices[j].z;
+                    */
 
                     vertices[j] = rotate_yz_final * vertices[j];
                     vertices[j] += f_mesh[i].bounds.center;
@@ -97,9 +106,6 @@ namespace Tooth
                 // Set tooth parameters.
                 teeth.param[i].SetV1Vec(f_teeth.param[i].GetV1());
                 teeth.param[i].SetCenter(f_mesh[i].bounds.center, true);
-                // Set mesh collider.
-                //teeth.obj[i].GetComponent<MeshCollider>().sharedMesh
-                //    = teeth.obj[i].GetComponent<MeshFilter>().mesh;
             }
 
             // Destroy final teeth's object.
