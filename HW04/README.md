@@ -5,7 +5,7 @@ This is a VR airplane shooting game. Try to shoot as many targets as you can.
 
 ## Demo
 
-<iframe src="https://drive.google.com/file/d/1VvrIE_kYWU9AMQR3MIl5HXBwEBmKrwDB/preview" width="640" height="480"></iframe>
+[![VR Airplane Shooting Game](https://drive.google.com/file/d/1vKxg9knE8YsH5Cpzs8Qa_Sa8V0WoaORi/preview)](https://drive.google.com/file/d/1VvrIE_kYWU9AMQR3MIl5HXBwEBmKrwDB/preview)
 
 ## What I've done:
 - Use the laser pointer for the menu.
